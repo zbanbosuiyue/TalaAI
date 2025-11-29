@@ -50,7 +50,7 @@ public class ReminderService {
     public ReminderResponse getById(Long id) {
         Reminder reminder = repository.findByIdAndNotDeleted(id)
             .orElseThrow(() -> new TalaException(
-                ErrorCode.RESOURCE_NOT_FOUND, 
+                ErrorCode.NOT_FOUND, 
                 "Reminder not found: " + id
             ));
         
@@ -64,7 +64,7 @@ public class ReminderService {
     public ReminderResponse update(Long id, UpdateReminderRequest request) {
         Reminder reminder = repository.findByIdAndNotDeleted(id)
             .orElseThrow(() -> new TalaException(
-                ErrorCode.RESOURCE_NOT_FOUND, 
+                ErrorCode.NOT_FOUND, 
                 "Reminder not found: " + id
             ));
         
@@ -81,7 +81,7 @@ public class ReminderService {
     public void delete(Long id) {
         Reminder reminder = repository.findByIdAndNotDeleted(id)
             .orElseThrow(() -> new TalaException(
-                ErrorCode.RESOURCE_NOT_FOUND, 
+                ErrorCode.NOT_FOUND, 
                 "Reminder not found: " + id
             ));
         
@@ -98,7 +98,7 @@ public class ReminderService {
     public ReminderResponse complete(Long id) {
         Reminder reminder = repository.findByIdAndNotDeleted(id)
             .orElseThrow(() -> new TalaException(
-                ErrorCode.RESOURCE_NOT_FOUND, 
+                ErrorCode.NOT_FOUND, 
                 "Reminder not found: " + id
             ));
         
@@ -117,7 +117,7 @@ public class ReminderService {
     public ReminderResponse snooze(Long id, Instant until) {
         Reminder reminder = repository.findByIdAndNotDeleted(id)
             .orElseThrow(() -> new TalaException(
-                ErrorCode.RESOURCE_NOT_FOUND, 
+                ErrorCode.NOT_FOUND, 
                 "Reminder not found: " + id
             ));
         
@@ -136,7 +136,7 @@ public class ReminderService {
     public ReminderResponse cancel(Long id) {
         Reminder reminder = repository.findByIdAndNotDeleted(id)
             .orElseThrow(() -> new TalaException(
-                ErrorCode.RESOURCE_NOT_FOUND, 
+                ErrorCode.NOT_FOUND, 
                 "Reminder not found: " + id
             ));
         
