@@ -6,52 +6,52 @@ spring:
   cloud:
     gateway:
       routes:
+        - id: user-service
+          uri: ${USER_SERVICE_URL:http://user-service:8081}
+          predicates:
+            - Path=/api/v1/users/**,/api/v1/profiles/**,/api/v1/auth/**
+          filters:
+            - StripPrefix=0
+        
         - id: event-service
-          uri: ${EVENT_SERVICE_URL:http://localhost:8081}
+          uri: ${EVENT_SERVICE_URL:http://event-service:8082}
           predicates:
             - Path=/api/v1/events/**
           filters:
             - StripPrefix=0
         
         - id: query-service
-          uri: ${QUERY_SERVICE_URL:http://localhost:8082}
+          uri: ${QUERY_SERVICE_URL:http://query-service:8083}
           predicates:
             - Path=/api/v1/analytics/**,/api/v1/insights/**
           filters:
             - StripPrefix=0
         
         - id: ai-service
-          uri: ${AI_SERVICE_URL:http://localhost:8083}
+          uri: ${AI_SERVICE_URL:http://ai-service:8085}
           predicates:
             - Path=/api/v1/ai/**
           filters:
             - StripPrefix=0
         
-        - id: user-service
-          uri: ${USER_SERVICE_URL:http://localhost:8084}
+        - id: personalization-service
+          uri: ${PERSONALIZATION_SERVICE_URL:http://personalization-service:8084}
           predicates:
-            - Path=/api/v1/users/**,/api/v1/profiles/**,/api/v1/auth/**
+            - Path=/api/v1/personalization/**
           filters:
             - StripPrefix=0
         
         - id: reminder-service
-          uri: ${REMINDER_SERVICE_URL:http://localhost:8085}
+          uri: ${REMINDER_SERVICE_URL:http://reminder-service:8086}
           predicates:
             - Path=/api/v1/reminders/**
           filters:
             - StripPrefix=0
         
         - id: media-service
-          uri: ${MEDIA_SERVICE_URL:http://localhost:8086}
+          uri: ${MEDIA_SERVICE_URL:http://media-service:8087}
           predicates:
             - Path=/api/v1/media/**
-          filters:
-            - StripPrefix=0
-        
-        - id: personalization-service
-          uri: ${PERSONALIZATION_SERVICE_URL:http://localhost:8087}
-          predicates:
-            - Path=/api/v1/personalization/**
           filters:
             - StripPrefix=0
         
