@@ -1,0 +1,169 @@
+[
+  {
+    "key": "child_profile:profile_1",
+    "value": {
+      "measurements": [
+        {
+          "date": "2025-11-01",
+          "weight": 25.5,
+          "height": 34,
+          "headCircumference": 18.5,
+          "unit": "lbs/in"
+        },
+        {
+          "date": "2025-10-01",
+          "weight": 24.8,
+          "height": 33.5,
+          "headCircumference": 18.3,
+          "unit": "lbs/in"
+        },
+        {
+          "date": "2025-09-01",
+          "weight": 24.2,
+          "height": 33,
+          "headCircumference": 18.1,
+          "unit": "lbs/in"
+        }
+      ],
+      "allergies": [
+        "peanuts",
+        "tree nuts"
+      ],
+      "medicalHistory": {
+        "vaccinations": [
+          {
+            "name": "DTaP",
+            "date": "2023-05-15",
+            "doseNumber": 1
+          },
+          {
+            "name": "MMR",
+            "date": "2024-03-15",
+            "doseNumber": 1
+          },
+          {
+            "name": "Varicella",
+            "date": "2024-03-15",
+            "doseNumber": 1
+          }
+        ],
+        "pastConditions": [
+          {
+            "condition": "Ear infection",
+            "date": "2024-08-10",
+            "resolved": true
+          }
+        ],
+        "currentMedications": []
+      },
+      "milestones": [
+        {
+          "milestone": "First steps",
+          "date": "2024-01-20",
+          "ageMonths": 10
+        },
+        {
+          "milestone": "First words (mama, dada)",
+          "date": "2023-12-15",
+          "ageMonths": 9
+        }
+      ],
+      "preferences": {
+        "foods": [
+          "bananas",
+          "yogurt",
+          "pasta",
+          "chicken"
+        ],
+        "toys": [
+          "blocks",
+          "stuffed animals",
+          "books"
+        ],
+        "sleepComfort": "white noise machine, favorite blanket"
+      },
+      "emergencyContacts": [
+        {
+          "name": "John Johnson",
+          "relationship": "Father",
+          "phone": "555-0101"
+        },
+        {
+          "name": "Mary Johnson",
+          "relationship": "Grandmother",
+          "phone": "555-0102"
+        }
+      ],
+      "pediatrician": {
+        "name": "Dr. Lisa Anderson",
+        "clinic": "Children's Health Center",
+        "phone": "555-0200",
+        "address": "123 Medical Plaza, Suite 200"
+      }
+    }
+  },
+  {
+    "key": "child_profile:profile_2",
+    "value": {
+      "measurements": [
+        {
+          "date": "2025-11-01",
+          "weight": 32,
+          "height": 38,
+          "unit": "lbs/in"
+        }
+      ],
+      "allergies": [
+        "dairy"
+      ],
+      "medicalHistory": {
+        "vaccinations": [
+          {
+            "name": "DTaP",
+            "date": "2022-10-20",
+            "doseNumber": 4
+          },
+          {
+            "name": "MMR",
+            "date": "2023-08-20",
+            "doseNumber": 1
+          }
+        ],
+        "pastConditions": [],
+        "currentMedications": []
+      },
+      "milestones": [
+        {
+          "milestone": "Potty trained (daytime)",
+          "date": "2025-10-15",
+          "ageMonths": 38
+        }
+      ],
+      "preferences": {
+        "foods": [
+          "pizza",
+          "apples",
+          "crackers"
+        ],
+        "toys": [
+          "dinosaurs",
+          "cars",
+          "puzzles"
+        ],
+        "sleepComfort": "nightlight, stuffed dinosaur"
+      },
+      "emergencyContacts": [
+        {
+          "name": "Jennifer Chen",
+          "relationship": "Mother",
+          "phone": "555-0301"
+        }
+      ],
+      "pediatrician": {
+        "name": "Dr. Robert Kim",
+        "clinic": "Pediatric Care Associates",
+        "phone": "555-0400"
+      }
+    }
+  }
+]

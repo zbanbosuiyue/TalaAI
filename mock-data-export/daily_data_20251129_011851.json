@@ -1,0 +1,113 @@
+[
+  {
+    "key": "daily_data:253082161165369344:2025-11-29",
+    "value": {
+      "userId": "253082161165369344",
+      "date": "2025-11-29",
+      "bottleOz": 24,
+      "bottleCount": 4,
+      "solidsPercent": 80,
+      "mealsCount": 3,
+      "totalSleepHours": 11.5,
+      "napCount": 2,
+      "napMinutes": 150,
+      "nightWakes": 1,
+      "skippedNap": false,
+      "wetDiapers": 6,
+      "dirtyDiapers": 2,
+      "pottyAttempts": 0,
+      "accidents": 0,
+      "dryAllDay": false,
+      "temperature": 98.6,
+      "teething": false,
+      "medicationGiven": null,
+      "mood": "happy",
+      "tantrum": false,
+      "sharing": true,
+      "hitFriend": false,
+      "bestFriend": "Emma",
+      "activity": "Played with blocks and painted",
+      "newWords": 2,
+      "lastFeedHoursAgo": 2,
+      "events": [
+        {
+          "type": "special-activity",
+          "description": "Art class - painted with watercolors",
+          "time": "10:00 AM",
+          "severity": "info"
+        }
+      ],
+      "updatedAt": "2025-11-29T20:00:00.000Z"
+    }
+  },
+  {
+    "key": "daily_data:253082161165369344:2025-11-28",
+    "value": {
+      "userId": "253082161165369344",
+      "date": "2025-11-28",
+      "bottleOz": 26,
+      "bottleCount": 4,
+      "solidsPercent": 70,
+      "mealsCount": 3,
+      "totalSleepHours": 10.5,
+      "napCount": 1,
+      "napMinutes": 90,
+      "nightWakes": 2,
+      "skippedNap": false,
+      "wetDiapers": 5,
+      "dirtyDiapers": 1,
+      "temperature": 99.2,
+      "teething": true,
+      "medicationGiven": "Tylenol 2.5ml",
+      "mood": "grumpy",
+      "tantrum": true,
+      "sharing": false,
+      "hitFriend": false,
+      "activity": "Quiet play, seemed tired",
+      "newWords": 0,
+      "events": [
+        {
+          "type": "health-alert",
+          "title": "Teething discomfort",
+          "description": "Extra fussy, drooling more than usual",
+          "time": "2:00 PM",
+          "severity": "warning"
+        }
+      ],
+      "updatedAt": "2025-11-28T20:15:00.000Z"
+    }
+  },
+  {
+    "key": "daily_data:test_user_2:2025-11-29",
+    "value": {
+      "userId": "test_user_2",
+      "date": "2025-11-29",
+      "solidsPercent": 90,
+      "mealsCount": 3,
+      "totalSleepHours": 11,
+      "napCount": 1,
+      "napMinutes": 60,
+      "nightWakes": 0,
+      "wetDiapers": 0,
+      "dirtyDiapers": 0,
+      "pottyAttempts": 5,
+      "accidents": 1,
+      "dryAllDay": false,
+      "mood": "energetic",
+      "tantrum": false,
+      "sharing": true,
+      "bestFriend": "Noah",
+      "activity": "Playground time, climbed slide",
+      "newWords": 3,
+      "events": [
+        {
+          "type": "special-activity",
+          "description": "Potty training success - 4 out of 5 attempts",
+          "time": "Throughout day",
+          "severity": "info"
+        }
+      ],
+      "updatedAt": "2025-11-29T19:30:00.000Z"
+    }
+  }
+]

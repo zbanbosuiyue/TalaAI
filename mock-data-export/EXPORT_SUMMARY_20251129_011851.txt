@@ -1,0 +1,31 @@
+=== Tala Mock Data Export Summary ===
+Export Date: Sat Nov 29 01:18:51 PST 2025
+Output Directory: /Users/robert/Documents/Projects/TalaAI/backend/scripts/../mock-data-export
+
+Files Created:
+1. user_profiles_20251129_011851.json (3 sample user profiles)
+2. daily_data_20251129_011851.json (3 sample daily data records)
+3. child_profiles_20251129_011851.json (2 sample child profiles)
+4. timeline_events_structure_20251129_011851.json (Event structure reference)
+5. insights_structure_20251129_011851.json (Insights structure reference)
+6. MIGRATION_MAPPING_20251129_011851.md (Migration guide)
+
+Total Records:
+- User Profiles: 3
+- Daily Data Records: 3
+- Child Profiles: 2
+- Sample Events: 8 (in structure file)
+- Sample Insights: 3 (in structure file)
+
+Next Steps:
+1. Review exported data for accuracy
+2. Create backend migration script
+3. Test migration in staging environment
+4. Run parallel systems for validation
+5. Complete migration and cleanup
+
+Notes:
+- This is SAMPLE data representing the frontend data structure
+- Real Supabase KV Store data needs to be exported separately
+- Use this as a template for the actual migration
+- All sensitive data should be handled securely during migration

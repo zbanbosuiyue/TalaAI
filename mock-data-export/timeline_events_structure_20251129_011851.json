@@ -1,0 +1,112 @@
+{
+  "description": "Timeline events are currently generated client-side based on age. This structure shows what should be stored in backend events table.",
+  "sampleEvents": [
+    {
+      "profileId": 1,
+      "eventType": "FEEDING",
+      "eventTime": "2025-11-29T08:00:00Z",
+      "eventData": {
+        "type": "bottle",
+        "amount": 6,
+        "unit": "oz",
+        "duration": 15,
+        "notes": "Finished entire bottle"
+      },
+      "source": "USER_INPUT",
+      "category": "Food"
+    },
+    {
+      "profileId": 1,
+      "eventType": "SLEEP",
+      "eventTime": "2025-11-29T13:00:00Z",
+      "eventData": {
+        "type": "nap",
+        "duration": 90,
+        "quality": "good",
+        "location": "crib",
+        "notes": "Fell asleep easily"
+      },
+      "source": "USER_INPUT",
+      "category": "Sleep"
+    },
+    {
+      "profileId": 1,
+      "eventType": "DIAPER",
+      "eventTime": "2025-11-29T10:30:00Z",
+      "eventData": {
+        "type": "wet",
+        "notes": null
+      },
+      "source": "USER_INPUT",
+      "category": "Health"
+    },
+    {
+      "profileId": 1,
+      "eventType": "ACTIVITY",
+      "eventTime": "2025-11-29T15:00:00Z",
+      "eventData": {
+        "type": "art",
+        "description": "Painted with watercolors",
+        "duration": 30,
+        "location": "daycare"
+      },
+      "source": "DAYCARE",
+      "category": "Activity"
+    },
+    {
+      "profileId": 1,
+      "eventType": "BEHAVIOR",
+      "eventTime": "2025-11-29T18:00:00Z",
+      "eventData": {
+        "mood": "happy",
+        "tantrum": false,
+        "sharing": true,
+        "notes": "Great mood all evening"
+      },
+      "source": "USER_INPUT",
+      "category": "Behavior"
+    },
+    {
+      "profileId": 1,
+      "eventType": "MILESTONE",
+      "eventTime": "2025-11-29T16:30:00Z",
+      "eventData": {
+        "type": "language",
+        "description": "Said 'thank you' unprompted",
+        "witnessed": true
+      },
+      "source": "USER_INPUT",
+      "category": "Development"
+    },
+    {
+      "profileId": 1,
+      "eventType": "HEALTH",
+      "eventTime": "2025-11-29T14:00:00Z",
+      "eventData": {
+        "type": "medication",
+        "medication": "Tylenol",
+        "dosage": "2.5ml",
+        "reason": "teething discomfort",
+        "temperature": 99.2
+      },
+      "source": "USER_INPUT",
+      "category": "Health",
+      "priority": "medium"
+    },
+    {
+      "profileId": 1,
+      "eventType": "INCIDENT",
+      "eventTime": "2025-11-28T11:00:00Z",
+      "eventData": {
+        "type": "minor-injury",
+        "description": "Bumped head on table corner",
+        "severity": "minor",
+        "treatment": "Ice pack applied",
+        "location": "daycare"
+      },
+      "source": "DAYCARE",
+      "category": "Health",
+      "priority": "high"
+    }
+  ]
+}

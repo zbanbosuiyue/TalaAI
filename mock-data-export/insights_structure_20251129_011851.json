@@ -1,0 +1,66 @@
+{
+  "description": "Insights are currently generated client-side. This structure shows what backend should generate from event data.",
+  "sampleInsights": [
+    {
+      "id": "sleep-mood-correlation",
+      "type": "correlation",
+      "title": "Sleep & Mood Link",
+      "icon": "Moon",
+      "description": "Evening energy patterns",
+      "aiConclusion": "We noticed Aria's evening mood is closely connected to daytime rest. On days with 45+ minute naps, evenings are smoother.",
+      "actionTip": "On shorter nap days, try starting the bedtime routine 15 minutes earlier to prevent overtiredness.",
+      "chartType": "scatter",
+      "dataPoints": [
+        {"napMinutes": 20, "mood": 2, "day": "Mon"},
+        {"napMinutes": 90, "mood": 5, "day": "Tue"},
+        {"napMinutes": 35, "mood": 2, "day": "Wed"},
+        {"napMinutes": 105, "mood": 5, "day": "Thu"}
+      ],
+      "priority": 1,
+      "ageRange": [12, 36],
+      "generatedAt": "2025-11-29T20:00:00Z"
+    },
+    {
+      "id": "nutrition-variety",
+      "type": "challenge",
+      "title": "Nutrition Opportunities",
+      "icon": "Salad",
+      "description": "Meal variety patterns",
+      "aiConclusion": "Aria had a carb-focused week with pasta appearing 5 times. Only 1 green veggie attempt. There's room to add more variety.",
+      "actionTip": "Try hiding veggies in smoothies or mixing peas into mac & cheese this weekend.",
+      "chartType": "rainbow",
+      "dataPoints": {
+        "colors": [
+          {"color": "Red", "value": 3, "foods": ["Tomatoes", "Strawberries", "Apples"]},
+          {"color": "Orange", "value": 4, "foods": ["Carrots", "Sweet Potato", "Oranges"]},
+          {"color": "Yellow", "value": 9, "foods": ["Pasta", "Bread", "Banana", "Cheese"]},
+          {"color": "Green", "value": 1, "foods": ["Broccoli"]},
+          {"color": "White", "value": 5, "foods": ["Rice", "Milk", "Chicken"]}
+        ]
+      },
+      "priority": 1,
+      "ageRange": [12, 60],
+      "generatedAt": "2025-11-29T20:00:00Z"
+    },
+    {
+      "id": "social-circle",
+      "type": "social",
+      "title": "Friendship Patterns",
+      "icon": "Users",
+      "description": "Play connections at school",
+      "aiConclusion": "Emma remains Aria's favorite playmate. This week we noticed Noah appearing more often – a new friendship is forming!",
+      "actionTip": "At pickup, ask: 'What did you and Noah play today?' to encourage this budding friendship.",
+      "chartType": "bubble",
+      "dataPoints": {
+        "friends": [
+          {"name": "Emma", "frequency": 15, "relationship": "Best Friend"},
+          {"name": "Noah", "frequency": 3, "relationship": "New Friend"},
+          {"name": "Sophia", "frequency": 8, "relationship": "Play Partner"}
+        ]
+      },
+      "priority": 2,
+      "ageRange": [36, 60],
+      "generatedAt": "2025-11-29T20:00:00Z"
+    }
+  ]
+}
