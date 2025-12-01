@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 public class ChatClassifierService {
     
     private final GeminiService geminiService;
+    private final SystemPromptManager systemPromptManager;
     private final ObjectMapper objectMapper;
     
     /**
@@ -35,6 +36,17 @@ public class ChatClassifierService {
     public ChatClassificationResult classifyChat(String userInput, 
                                                   String attachmentContext,
                                                   String chatHistory) {
+        return classifyChat(userInput, attachmentContext, chatHistory, null, null);
+    }
+    
+    /**
+     * Classify user chat with tracking
+     */
+    public ChatClassificationResult classifyChat(String userInput, 
+                                                  String attachmentContext,
+                                                  String chatHistory,
+                                                  Long profileId,
+                                                  Long userId) {
         log.info("Classifying user input: {}", userInput != null ? userInput.substring(0, Math.min(50, userInput.length())) : "null");
         
         if (userInput == null || userInput.trim().isEmpty()) {
@@ -47,11 +59,15 @@ public class ChatClassifierService {
         }
         
         try {
-            // Build classification prompt
-            String prompt = buildClassificationPrompt(userInput, attachmentContext, chatHistory);
+            // Get cached system prompt
+            String cachedPromptId = systemPromptManager.getChatClassifierCache();
             
-            // Call Gemini
-            String aiResponse = geminiService.generateContent(prompt);
+            // Build dynamic context
+            String dynamicContext = buildDynamicContext(attachmentContext, chatHistory);
+            
+            // Call Gemini with cached prompt and tracking
+            String aiResponse = geminiService.generateContentWithCache(
+                    cachedPromptId, dynamicContext, userInput, profileId, userId, "ChatClassification");
             
             // Parse response
             ChatClassificationResult result = parseClassificationResponse(aiResponse, userInput);
@@ -73,74 +89,27 @@ public class ChatClassifierService {
     }
     
     /**
-     * Build classification prompt
+     * Build dynamic context (not cached)
      */
-    private String buildClassificationPrompt(String userInput, String attachmentContext, String chatHistory) {
-        StringBuilder prompt = new StringBuilder();
-        
-        prompt.append("""
-            You are a chat classifier for a baby tracking application.
-            Classify user input by SEMANTIC MEANING and CONTEXT, not just keywords.
-            
-            INTERACTION TYPES:
-            
-            1) DATA_RECORDING
-               - User is reporting/logging baby events (feeding, sleep, diaper, activities, milestones, health)
-               - Short factual answers to clarification questions about events
-               - Examples: "Baby drank 120ml", "She slept from 2pm to 4pm", "Changed diaper at 3pm"
-            
-            2) QUESTION_ANSWERING
-               - User is asking for information, advice, or analysis
-               - Questions about baby's data, patterns, or parenting advice
-               - Examples: "How much did baby eat today?", "Is the sleep pattern normal?", "What should I do about teething?"
-            
-            3) GENERAL_CHAT
-               - Casual conversation, greetings, or emotional support
-               - Examples: "Hello", "Thank you", "I'm feeling overwhelmed"
-            
-            4) OUT_OF_SCOPE
-               - Topics unrelated to baby care or parenting
-               - Examples: "What's the weather?", "Tell me a joke"
-            
-            KEY RULES:
-            - "Baby drank 200ml" (statement) → DATA_RECORDING
-            - "How much did baby drink?" (question) → QUESTION_ANSWERING
-            - If user has attachments (daycare report, medical record), likely DATA_RECORDING
-            - Messages ending with "?" are usually QUESTION_ANSWERING unless they're meta-commands
-            
-            """);
+    private String buildDynamicContext(String attachmentContext, String chatHistory) {
+        StringBuilder context = new StringBuilder();
         
         // Add attachment context if available
         if (attachmentContext != null && !attachmentContext.isBlank()) {
-            prompt.append("\n=== ATTACHMENT CONTEXT ===\n");
-            prompt.append(attachmentContext).append("\n\n");
-            prompt.append("⚠️ User has attachments. If they contain structured data (daycare report, medical record), ");
-            prompt.append("this is likely DATA_RECORDING intent.\n\n");
+            context.append("\n=== ATTACHMENT CONTEXT ===\n");
+            context.append(attachmentContext).append("\n\n");
+            context.append("⚠️ User has attachments. If they contain structured data (daycare report, medical record), ");
+            context.append("this is likely DATA_RECORDING intent.\n\n");
         }
         
         // Add chat history if available
         if (chatHistory != null && !chatHistory.isBlank()) {
-            prompt.append("\n=== RECENT CHAT HISTORY ===\n");
-            prompt.append(chatHistory).append("\n\n");
-            prompt.append("⚠️ Use chat history to understand context and continuation.\n\n");
+            context.append("\n=== RECENT CHAT HISTORY ===\n");
+            context.append(chatHistory).append("\n\n");
+            context.append("⚠️ Use chat history to understand context and continuation.\n\n");
         }
         
-        prompt.append("""
-            
-            OUTPUT (JSON ONLY):
-            Return exactly ONE JSON object. No extra text.
-            {
-              "interaction_type": "DATA_RECORDING|QUESTION_ANSWERING|GENERAL_CHAT|OUT_OF_SCOPE",
-              "reason": "short explanation based on meaning and context",
-              "confidence": 0.0-1.0,
-              "ai_think_process": "your reasoning"
-            }
-            
-            USER INPUT: "
-            """);
-        prompt.append(userInput).append("\"");
-        
-        return prompt.toString();
+        return context.toString();
     }
     
     /**

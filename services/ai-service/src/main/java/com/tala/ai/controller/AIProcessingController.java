@@ -49,6 +49,8 @@ public class AIProcessingController {
         orchRequest.babyProfileContext = request.babyProfileContext;
         orchRequest.chatHistory = request.chatHistory;
         orchRequest.userLocalTime = request.userLocalTime;
+        orchRequest.profileId = request.profileId;
+        orchRequest.userId = request.userId != null ? request.userId : 1L;
         
         // Process through pipeline
         AIProcessingOrchestrator.ProcessingResult result = orchestrator.processInput(orchRequest);
@@ -121,6 +123,7 @@ public class AIProcessingController {
     @Data
     public static class ProcessingRequest {
         private Long profileId;  // Baby profile ID (required)
+        private Long userId;     // User ID (optional, defaults to 1)
         private String userMessage;
         private List<String> attachmentUrls;
         private String babyProfileContext;

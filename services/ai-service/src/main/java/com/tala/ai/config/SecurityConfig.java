@@ -22,6 +22,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/actuator/**").permitAll()
                 .requestMatchers("/api/v1/ai/**").permitAll()  // Allow public access for testing
+                .requestMatchers("/api/v1/chat/**").permitAll()  // Allow chat endpoints
                 .anyRequest().authenticated()
             );
         

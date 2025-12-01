@@ -52,13 +52,14 @@ public class ChatEventController {
                 }
             }
             
-            // Create original event (event sourcing)
+            // Create original event with attachments (event sourcing)
             OriginalEvent originalEvent = originalEventService.createEvent(
                     request.getProfileId(),
                     DataSourceType.AI_CHAT,
                     null,  // No external source ID for chat
                     eventTime,
-                    rawPayload
+                    rawPayload,
+                    request.getAttachmentFileIds()  // Attachment IDs from chat
             );
             
             // Build response

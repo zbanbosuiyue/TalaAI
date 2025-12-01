@@ -30,6 +30,7 @@ spring:
   flyway:
     enabled: true
     baseline-on-migrate: true
+    validate-on-migrate: false
     locations: classpath:db/migration
     schemas: ai
     table: flyway_schema_history_ai
@@ -74,15 +75,16 @@ management:
 
 gemini:
   api-key: ${GEMINI_API_KEY:}
-  model: ${GEMINI_MODEL:gemini-2.0-flash-exp}
+  model: ${GEMINI_MODEL:gemini-2.5-pro-latest}
 
 # External services on Mac Mini (192.168.1.112)
 external:
   mem0:
-    url: ${MEM0_URL:http://192.168.1.112:8000}
+    url: ${MEM0_URL:http://192.168.1.112:9002}
     api-key: ${MEM0_API_KEY:}
+    enabled: ${MEM0_ENABLED:true}
   mlx-audio:
-    url: ${MLX_AUDIO_URL:http://192.168.1.112:5000}
+    url: ${MLX_AUDIO_URL:http://192.168.1.112:8000}
   mailcow:
     url: ${MAILCOW_URL:http://192.168.1.112:8080}
     api-key: ${MAILCOW_API_KEY:}

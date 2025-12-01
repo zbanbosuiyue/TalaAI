@@ -31,6 +31,7 @@ import java.util.Map;
 public class EventExtractionService {
     
     private final GeminiService geminiService;
+    private final SystemPromptManager systemPromptManager;
     private final ObjectMapper objectMapper;
     
     /**
@@ -48,6 +49,19 @@ public class EventExtractionService {
                                                 String babyProfileContext,
                                                 String chatHistory,
                                                 String userLocalTime) {
+        return extractEvents(userMessage, attachmentContext, babyProfileContext, chatHistory, userLocalTime, null, null);
+    }
+    
+    /**
+     * Extract structured event data with tracking
+     */
+    public EventExtractionResult extractEvents(String userMessage,
+                                                String attachmentContext,
+                                                String babyProfileContext,
+                                                String chatHistory,
+                                                String userLocalTime,
+                                                Long profileId,
+                                                Long userId) {
         log.info("Extracting events from user input");
         
         if (userMessage == null || userMessage.trim().isEmpty()) {
@@ -60,12 +74,16 @@ public class EventExtractionService {
         }
         
         try {
-            // Build extraction prompt
-            String prompt = buildExtractionPrompt(userMessage, attachmentContext, 
-                    babyProfileContext, chatHistory, userLocalTime);
+            // Get cached system prompt
+            String cachedPromptId = systemPromptManager.getEventExtractionCache();
             
-            // Call Gemini
-            String aiResponse = geminiService.generateContent(prompt);
+            // Build dynamic context (not cached)
+            String dynamicContext = buildDynamicContext(attachmentContext, babyProfileContext, 
+                    chatHistory, userLocalTime);
+            
+            // Call Gemini with cached prompt and tracking
+            String aiResponse = geminiService.generateContentWithCache(
+                    cachedPromptId, dynamicContext, userMessage, profileId, userId, "EventExtraction");
             
             // Parse response
             EventExtractionResult result = parseExtractionResponse(aiResponse);
@@ -86,113 +104,42 @@ public class EventExtractionService {
     }
     
     /**
-     * Build event extraction prompt
+     * Build dynamic context (not cached)
+     * This includes chat history, baby profile, attachments, and current time
      */
-    private String buildExtractionPrompt(String userMessage, String attachmentContext,
-                                          String babyProfileContext, String chatHistory,
-                                          String userLocalTime) {
-        StringBuilder prompt = new StringBuilder();
-        
-        prompt.append("""
-            You are Tala, a warm and caring AI parenting companion.
-            Your task is to extract structured baby event data from parent's input.
-            
-            YOUR IDENTITY & STYLE:
-            - Warm, gentle, encouraging, and supportive
-            - Use "we" instead of "you"
-            - Keep replies natural and conversational (2-3 sentences)
-            
-            YOUR TASK:
-            1. Generate a warm, empathetic response message for the parent
-            2. Extract structured event data in JSON format
-            
-            EVENT CATEGORIES:
-            - JOURNAL: Daily activities (FEEDING, SLEEP, DIAPER, PUMPING, MILESTONE, GROWTH_MEASUREMENT)
-            - HEALTH: Health-related (SICKNESS, MEDICINE, MEDICAL_VISIT, VACCINATION)
-            
-            TIMESTAMP RULES (CRITICAL):
-            - Use CURRENT SYSTEM TIME as reference for relative times
-            - "just now" or no time → use current system time
-            - "30 mins ago" → current time minus 30 minutes
-            - "this morning at 8am" → today's date with 08:00:00
-            - If attachment has specific date (e.g., "Visit Date: 2025-11-12"), use that date
-            - Format: ISO8601 (YYYY-MM-DDTHH:mm:ss)
-            
-            """);
+    private String buildDynamicContext(String attachmentContext,
+                                       String babyProfileContext,
+                                       String chatHistory,
+                                       String userLocalTime) {
+        StringBuilder context = new StringBuilder();
         
         // Add current time context
         if (userLocalTime != null && !userLocalTime.isBlank()) {
-            prompt.append("⏰ CURRENT SYSTEM TIME: ").append(userLocalTime).append("\n");
-            prompt.append("⚠️ ALL timestamp calculations MUST be based on this current time!\n\n");
+            context.append("⏰ CURRENT SYSTEM TIME: ").append(userLocalTime).append("\n");
+            context.append("⚠️ ALL timestamp calculations MUST be based on this current time!\n\n");
         }
         
         // Add baby profile context
         if (babyProfileContext != null && !babyProfileContext.isBlank()) {
-            prompt.append("=== BABY PROFILE ===\n");
-            prompt.append(babyProfileContext).append("\n\n");
+            context.append("=== BABY PROFILE ===\n");
+            context.append(babyProfileContext).append("\n\n");
         }
         
         // Add attachment context
         if (attachmentContext != null && !attachmentContext.isBlank()) {
-            prompt.append("=== ATTACHMENT CONTENT ===\n");
-            prompt.append(attachmentContext).append("\n\n");
-            prompt.append("⚠️ Extract events from attachment content. Use dates from attachment if specified.\n\n");
+            context.append("=== ATTACHMENT CONTENT ===\n");
+            context.append(attachmentContext).append("\n\n");
+            context.append("⚠️ Extract events from attachment content. Use dates from attachment if specified.\n\n");
         }
         
         // Add chat history
         if (chatHistory != null && !chatHistory.isBlank()) {
-            prompt.append("=== RECENT CHAT HISTORY ===\n");
-            prompt.append(chatHistory).append("\n\n");
-            prompt.append("⚠️ Use chat history to understand context and continuation.\n\n");
+            context.append("=== RECENT CHAT HISTORY ===\n");
+            context.append(chatHistory).append("\n\n");
+            context.append("⚠️ Use chat history to understand context and continuation.\n\n");
         }
         
-        prompt.append("""
-            
-            OUTPUT FORMAT (JSON ONLY):
-            Return exactly ONE JSON object. No extra text before or after.
-            {
-              "ai_message": "Your warm response to parent (2-3 sentences)",
-              "intent_understanding": "Brief summary of what you understood",
-              "confidence": 0.0-1.0,
-              "events": [
-                {
-                  "event_category": "JOURNAL|HEALTH",
-                  "event_type": "FEEDING|SLEEP|DIAPER|PUMPING|MILESTONE|GROWTH_MEASUREMENT|SICKNESS|MEDICINE|MEDICAL_VISIT|VACCINATION",
-                  "timestamp": "2025-11-30T14:30:00",
-                  "summary": "Brief event summary",
-                  "event_data": {
-                    "amount": 120,
-                    "unit": "ML",
-                    "feeding_type": "FORMULA",
-                    "duration_minutes": 30,
-                    "notes": "Additional notes"
-                  },
-                  "confidence": 0.95
-                }
-              ],
-              "clarification_needed": ["Question 1?", "Question 2?"],
-              "ai_think_process": "Your reasoning"
-            }
-            
-            COMMON EVENT DATA FIELDS:
-            - Feeding: amount, unit (ML/OZ), feeding_type (BREAST_MILK/FORMULA/SOLID_FOOD), food_name
-            - Sleep: duration_minutes, sleep_quality (POOR/FAIR/GOOD/EXCELLENT), sleep_action (start_sleep/end_sleep/complete_sleep)
-            - Diaper: diaper_type (WET/DIRTY/BOTH)
-            - Milestone: milestone_type (MOTOR/LANGUAGE/SOCIAL/COGNITIVE), milestone_name
-            - Medicine: medicine_name, dosage, dosage_unit
-            - Medical Visit: visit_type, doctor_name, diagnosis, notes
-            - Sickness: symptom_name, severity (MILD/MODERATE/SEVERE), temperature, temperature_unit (C/F)
-            
-            IMPORTANT:
-            - If data is incomplete, add questions to clarification_needed array
-            - confidence should reflect how certain you are about the extracted data
-            - ai_message should always be warm and encouraging
-            
-            USER INPUT: "
-            """);
-        prompt.append(userMessage).append("\"");
-        
-        return prompt.toString();
+        return context.toString();
     }
     
     /**

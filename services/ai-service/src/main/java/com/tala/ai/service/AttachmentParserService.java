@@ -35,6 +35,14 @@ public class AttachmentParserService {
      * @return Parsed attachment result
      */
     public AttachmentParserResult parseAttachments(List<String> attachmentUrls, String userMessage) {
+        return parseAttachments(attachmentUrls, userMessage, null, null);
+    }
+    
+    /**
+     * Parse attachments with tracking
+     */
+    public AttachmentParserResult parseAttachments(List<String> attachmentUrls, String userMessage, 
+                                                    Long profileId, Long userId) {
         log.info("Parsing {} attachments", attachmentUrls != null ? attachmentUrls.size() : 0);
         
         if (attachmentUrls == null || attachmentUrls.isEmpty()) {
@@ -49,8 +57,9 @@ public class AttachmentParserService {
             // Build prompt for attachment analysis
             String prompt = buildAttachmentAnalysisPrompt(userMessage);
             
-            // Call Gemini with attachments
-            String aiResponse = geminiService.generateContentWithAttachments(prompt, attachmentUrls);
+            // Call Gemini with attachments and tracking
+            String aiResponse = geminiService.generateContentWithAttachments(prompt, attachmentUrls, 
+                    profileId, userId, "AttachmentParser");
             
             // Parse response
             AttachmentParserResult result = parseAttachmentResponse(aiResponse);

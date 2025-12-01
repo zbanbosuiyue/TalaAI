@@ -12,6 +12,8 @@ import java.util.Map;
 /**
  * Request DTO for chat-based event creation
  * Receives AI-processed data from ai-service
+ * 
+ * Supports multimodal chat with attachments (images, documents, audio)
  */
 @Data
 @Builder
@@ -23,7 +25,12 @@ public class ChatEventRequest {
     private String userMessage;
     private String aiMessage;
     private List<ExtractedEvent> events;
-    private List<String> attachmentUrls;
+    
+    /**
+     * Attachment file IDs from file-service
+     * These IDs will be stored in OriginalEvent.attachmentIds
+     */
+    private List<Long> attachmentFileIds;
     
     @Data
     @Builder

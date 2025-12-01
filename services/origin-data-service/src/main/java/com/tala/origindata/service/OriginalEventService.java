@@ -23,7 +23,7 @@ public class OriginalEventService {
     private final OriginalEventRepository originalEventRepository;
     
     /**
-     * Create a new original event (idempotent)
+     * Create a new original event (idempotent) - without attachments
      */
     @Transactional
     public OriginalEvent createEvent(
@@ -32,6 +32,20 @@ public class OriginalEventService {
             String sourceEventId,
             Instant eventTime,
             String rawPayload) {
+        return createEvent(profileId, sourceType, sourceEventId, eventTime, rawPayload, null);
+    }
+    
+    /**
+     * Create a new original event with attachments (idempotent)
+     */
+    @Transactional
+    public OriginalEvent createEvent(
+            Long profileId,
+            DataSourceType sourceType,
+            String sourceEventId,
+            Instant eventTime,
+            String rawPayload,
+            List<Long> attachmentFileIds) {
         
         // Check for duplicate
         if (sourceEventId != null) {
@@ -49,12 +63,13 @@ public class OriginalEventService {
                 .sourceEventId(sourceEventId)
                 .eventTime(eventTime)
                 .rawPayload(rawPayload)
+                .attachmentIds(attachmentFileIds != null ? attachmentFileIds : List.of())
                 .aiProcessed(false)
                 .build();
         
         OriginalEvent saved = originalEventRepository.save(event);
-        log.info("Created original event: id={}, sourceType={}, profileId={}", 
-                saved.getId(), sourceType, profileId);
+        log.info("Created original event: id={}, sourceType={}, profileId={}, attachments={}", 
+                saved.getId(), sourceType, profileId, saved.getAttachmentCount());
         
         return saved;
     }

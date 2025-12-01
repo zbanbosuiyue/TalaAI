@@ -44,7 +44,9 @@ public class AIProcessingOrchestrator {
                 log.info("Stage 1: Parsing {} attachments", request.attachmentUrls.size());
                 attachmentResult = attachmentParserService.parseAttachments(
                         request.attachmentUrls, 
-                        request.userMessage);
+                        request.userMessage,
+                        request.profileId,
+                        request.userId);
                 result.attachmentParserResult = attachmentResult;
             }
             
@@ -56,7 +58,9 @@ public class AIProcessingOrchestrator {
             ChatClassificationResult classificationResult = chatClassifierService.classifyChat(
                     request.userMessage,
                     attachmentContext,
-                    request.chatHistory);
+                    request.chatHistory,
+                    request.profileId,
+                    request.userId);
             result.chatClassificationResult = classificationResult;
             
             // Stage 3: Extract events (only if DATA_RECORDING intent)
@@ -67,7 +71,9 @@ public class AIProcessingOrchestrator {
                         attachmentContext,
                         request.babyProfileContext,
                         request.chatHistory,
-                        request.userLocalTime);
+                        request.userLocalTime,
+                        request.profileId,
+                        request.userId);
                 result.eventExtractionResult = extractionResult;
             } else {
                 log.info("Stage 3: Skipped (interaction type: {})", classificationResult.getInteractionType());
@@ -155,6 +161,8 @@ public class AIProcessingOrchestrator {
         public String babyProfileContext;
         public String chatHistory;
         public String userLocalTime;
+        public Long profileId;
+        public Long userId;
     }
     
     /**

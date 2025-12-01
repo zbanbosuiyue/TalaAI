@@ -1,6 +1,7 @@
 package com.tala.origindata.domain;
 
-import com.tala.core.domain.BaseEntity;
+import com.tala.core.domain.BaseAttachmentEntity;
+import com.tala.core.domain.AttachmentSupport;
 import com.tala.origindata.constant.DataSourceType;
 import io.hypersistence.utils.hibernate.type.json.JsonBinaryType;
 import jakarta.persistence.*;
@@ -9,6 +10,7 @@ import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.Type;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -16,6 +18,8 @@ import java.util.List;
  * 
  * All external data enters through this entity.
  * Provides audit trail, idempotency, and replay capability.
+ * 
+ * Extends BaseAttachmentEntity for unified attachment support.
  */
 @Entity
 @Table(name = "original_events", schema = "origin_data", indexes = {
@@ -30,7 +34,7 @@ import java.util.List;
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-public class OriginalEvent extends BaseEntity {
+public class OriginalEvent extends BaseAttachmentEntity {
     
     @Column(name = "profile_id", nullable = false)
     private Long profileId;
@@ -49,10 +53,14 @@ public class OriginalEvent extends BaseEntity {
     @Column(name = "raw_payload", columnDefinition = "jsonb", nullable = false)
     private String rawPayload;
     
+    /**
+     * Override parent's attachment_ids column to use legacy column name
+     * Maintains backward compatibility with existing schema
+     */
     @Type(JsonBinaryType.class)
     @Column(name = "attachment_file_ids", columnDefinition = "jsonb", nullable = false)
     @Builder.Default
-    private List<Long> attachmentFileIds = List.of();
+    private List<Long> attachmentIds = new ArrayList<>();
     
     @Column(name = "ai_processed")
     @Builder.Default

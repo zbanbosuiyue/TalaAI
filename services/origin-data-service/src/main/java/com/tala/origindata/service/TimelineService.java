@@ -110,9 +110,9 @@ public class TimelineService {
         
         // Resolve attachments from OriginalEvent
         Optional<OriginalEvent> originalEvent = originalEventRepository.findById(entry.getOriginalEventId());
-        if (originalEvent.isPresent() && originalEvent.get().getAttachmentFileIds() != null) {
+        if (originalEvent.isPresent() && originalEvent.get().hasAttachments()) {
             attachments = attachmentResolverService.resolveAttachments(
-                originalEvent.get().getAttachmentFileIds()
+                originalEvent.get().getAttachmentIds()
             );
         }
         
