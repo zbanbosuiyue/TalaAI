@@ -22,8 +22,8 @@ NC='\033[0m' # No Color
 # Change to backend directory
 cd "$(dirname "$0")/.."
 
-echo -e "${YELLOW}Step 1: Stopping existing services...${NC}"
-docker-compose -f docker-compose.yml -f docker-compose.services.yml down
+echo -e "${YELLOW}Step 1: Stopping existing business services...${NC}"
+docker-compose -f docker-compose.services.yml down
 
 echo -e "${YELLOW}Step 2: Building all service images...${NC}"
 echo "This may take 5-10 minutes on first run..."
@@ -33,23 +33,21 @@ docker-compose -f docker-compose.yml -f docker-compose.services.yml build --para
 
 echo -e "${GREEN}✓ All images built successfully${NC}"
 
-echo -e "${YELLOW}Step 3: Starting infrastructure services...${NC}"
-docker-compose -f docker-compose.yml up -d postgres redis
+echo -e "${YELLOW}Step 3: Verifying infrastructure services are running...${NC}"
+if ! docker ps | grep -q postgres-dev; then
+    echo "PostgreSQL not running. Please start infrastructure first with: docker-compose up -d"
+    exit 1
+fi
 
 echo "Waiting for PostgreSQL to be healthy..."
-until docker exec tala-postgres-dev pg_isready -U tala > /dev/null 2>&1; do
+until docker exec postgres-dev pg_isready -U tala > /dev/null 2>&1; do
     echo -n "."
     sleep 2
 done
 echo -e "${GREEN}✓ PostgreSQL is ready${NC}"
 
-echo -e "${YELLOW}Step 4: Initializing database schemas...${NC}"
-docker exec -i tala-postgres-dev psql -U tala -d tala_db < infrastructure/postgresql/init-db.sql
-
-echo -e "${GREEN}✓ Database schemas initialized${NC}"
-
-echo -e "${YELLOW}Step 5: Starting all microservices...${NC}"
-docker-compose -f docker-compose.yml -f docker-compose.services.yml up -d
+echo -e "${YELLOW}Step 4: Starting all microservices...${NC}"
+docker-compose -f docker-compose.services.yml up -d
 
 echo ""
 echo "======================================"
@@ -57,7 +55,7 @@ echo "Waiting for services to be healthy..."
 echo "======================================"
 
 # Wait for services to be healthy
-services=("user-service:8081" "query-service:8083" "personalization-service:8084" "ai-service:8085" "reminder-service:8086" "media-service:8087" "file-service:8088")
+services=("user-service:8081" "query-service:8083" "personalization-service:8084" "ai-service:8085" "reminder-service:8086" "media-service:8087" "file-service:8088" "origin-data-service:8089")
 
 for service in "${services[@]}"; do
     IFS=':' read -r name port <<< "$service"
@@ -87,6 +85,7 @@ echo -e "${GREEN}All Services Started!${NC}"
 echo "======================================"
 echo ""
 echo "Service URLs:"
+echo "  Gateway Service:         http://localhost:8080"
 echo "  User Service:            http://localhost:8081"
 echo "  Query Service:           http://localhost:8083"
 echo "  Personalization Service: http://localhost:8084"
@@ -94,15 +93,15 @@ echo "  AI Service:              http://localhost:8085"
 echo "  Reminder Service:        http://localhost:8086"
 echo "  Media Service:           http://localhost:8087"
 echo "  File Service:            http://localhost:8088"
-echo "  Gateway Service:         http://localhost:8080"
+echo "  Origin Data Service:     http://localhost:8089"
 echo ""
 echo "Infrastructure:"
 echo "  PostgreSQL:             localhost:5432"
 echo "  Redis:                  localhost:6379"
 echo ""
 echo "View logs:"
-echo "  docker-compose -f docker-compose.yml -f docker-compose.services.yml logs -f [service-name]"
+echo "  docker-compose -f docker-compose.services.yml logs -f [service-name]"
 echo ""
-echo "Stop all services:"
-echo "  docker-compose -f docker-compose.yml -f docker-compose.services.yml down"
+echo "Stop all business services:"
+echo "  docker-compose -f docker-compose.services.yml down"
 echo ""

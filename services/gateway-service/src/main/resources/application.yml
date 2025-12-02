@@ -30,7 +30,7 @@ spring:
         - id: ai-service
           uri: ${AI_SERVICE_URL:http://ai-service:8085}
           predicates:
-            - Path=/api/v1/ai/**
+            - Path=/api/v1/ai/**,/api/v1/chat/**
           filters:
             - StripPrefix=0
         

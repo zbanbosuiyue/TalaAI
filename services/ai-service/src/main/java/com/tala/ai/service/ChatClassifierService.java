@@ -59,15 +59,25 @@ public class ChatClassifierService {
         }
         
         try {
-            // Get cached system prompt
+            // Get cached system prompt (returns null if caching unavailable)
             String cachedPromptId = systemPromptManager.getChatClassifierCache();
             
             // Build dynamic context
             String dynamicContext = buildDynamicContext(attachmentContext, chatHistory);
             
-            // Call Gemini with cached prompt and tracking
-            String aiResponse = geminiService.generateContentWithCache(
-                    cachedPromptId, dynamicContext, userInput, profileId, userId, "ChatClassification");
+            String aiResponse;
+            if (cachedPromptId != null) {
+                // Use cached prompt (preferred)
+                log.debug("Using cached system prompt for chat classification");
+                aiResponse = geminiService.generateContentWithCache(
+                        cachedPromptId, dynamicContext, userInput, profileId, userId, "ChatClassification");
+            } else {
+                // Fallback to non-cached mode
+                log.debug("Cache unavailable, using non-cached mode for chat classification");
+                String systemPrompt = systemPromptManager.getChatClassifierSystemPrompt();
+                aiResponse = geminiService.generateContentWithSystemPrompt(
+                        systemPrompt, dynamicContext, userInput, profileId, userId, "ChatClassification");
+            }
             
             // Parse response
             ChatClassificationResult result = parseClassificationResponse(aiResponse, userInput);

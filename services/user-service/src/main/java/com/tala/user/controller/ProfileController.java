@@ -40,6 +40,13 @@ public class ProfileController {
         return ResponseEntity.ok(profiles);
     }
     
+    @GetMapping("/user/{userId}/default")
+    public ResponseEntity<Long> getDefaultProfileId(@PathVariable Long userId) {
+        log.info("GET /api/v1/profiles/user/{}/default", userId);
+        Long profileId = profileService.getDefaultProfileId(userId);
+        return ResponseEntity.ok(profileId);
+    }
+    
     @GetMapping("/{id}")
     public ResponseEntity<ProfileResponse> getProfile(@PathVariable Long id) {
         log.info("GET /api/v1/profiles/{}", id);

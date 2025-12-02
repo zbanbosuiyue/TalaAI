@@ -52,7 +52,8 @@ public class DailyAggregationService {
             .date(summary.getDate())
             .eventsSummary(summary.getEventsSummary())
             .metrics(summary.getMetrics())
-            .candidateMediaIds(summary.getCandidateMediaIds())
+            // Map attachmentIds (AttachmentSupport) to candidateMediaIds in DTO
+            .candidateMediaIds(summary.getAttachmentIds())
             .candidateIncidentIds(summary.getCandidateIncidentIds())
             .totalEvents(summary.getTotalEvents())
             .hasIncident(summary.getHasIncident())
@@ -93,7 +94,8 @@ public class DailyAggregationService {
             .date(date)
             .eventsSummary(new HashMap<>())
             .metrics(new HashMap<>())
-            .candidateMediaIds(new ArrayList<>())
+            // Use attachmentIds field defined by AttachmentSupport
+            .attachmentIds(new ArrayList<>())
             .candidateIncidentIds(new ArrayList<>())
             .totalEvents(0)
             .hasIncident(false)
@@ -112,7 +114,7 @@ public class DailyAggregationService {
             .date(summary.getDate())
             .eventsSummary(summary.getEventsSummary())
             .metrics(summary.getMetrics())
-            .candidateMediaIds(summary.getCandidateMediaIds())
+            .candidateMediaIds(summary.getAttachmentIds())
             .candidateIncidentIds(summary.getCandidateIncidentIds())
             .totalEvents(summary.getTotalEvents())
             .hasIncident(summary.getHasIncident())

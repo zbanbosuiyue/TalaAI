@@ -2,6 +2,8 @@ package com.tala.ai.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tala.ai.client.OriginDataServiceClient;
+import com.tala.core.exception.ErrorCode;
+import com.tala.core.exception.TalaException;
 import com.tala.ai.dto.EventExtractionResult;
 import com.tala.ai.service.AIProcessingOrchestrator;
 import com.tala.ai.service.ChatMessageService;
@@ -58,7 +60,7 @@ public class ChatController {
      * - Returns confirmation
      */
     @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter chatStream(@RequestBody ChatRequest request) {
+    public SseEmitter streamChat(@RequestBody ChatRequest request) {
         log.info("POST /api/v1/chat/stream - profileId: {}, userId: {}, message: {}", 
                 request.profileId, request.userId, 
                 request.message != null ? request.message.substring(0, Math.min(50, request.message.length())) : "null");
@@ -277,6 +279,12 @@ public class ChatController {
                                           AIProcessingOrchestrator.ProcessingResult result) throws Exception {
         EventExtractionResult extraction = result.eventExtractionResult;
         
+        // Validate required field
+        if (request.profileId == null) {
+            throw new TalaException(ErrorCode.BAD_REQUEST, 
+                    "profileId is required in chat request");
+        }
+        
         // Build ChatEventRequest for origin-data-service
         Map<String, Object> chatEventRequest = new HashMap<>();
         chatEventRequest.put("profileId", request.profileId);
@@ -311,7 +319,7 @@ public class ChatController {
      * Build baby profile context
      */
     private String buildBabyProfileContext(Long profileId) {
-        // TODO: Fetch from user-service
+        // TODO: Fetch actual profile data from user-service
         return String.format("""
                 Baby Profile ID: %d
                 Name: Emma

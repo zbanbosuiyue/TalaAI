@@ -93,6 +93,8 @@ external:
 services:
   origin-data-service:
     url: ${ORIGIN_DATA_SERVICE_URL:http://localhost:8089}
+  user-service:
+    url: ${USER_SERVICE_URL:http://localhost:8081}
 
 logging:
   level:

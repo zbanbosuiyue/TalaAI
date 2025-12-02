@@ -203,13 +203,20 @@ public class GeminiService {
             .build();
         
         try (Response response = client.newCall(request).execute()) {
+            String responseBody = response.body() != null ? response.body().string() : "";
+            
             if (!response.isSuccessful()) {
-                throw new IOException("Failed to create cached content: " + response.code());
+                log.error("Failed to create cached content: {} - Response: {}", response.code(), responseBody);
+                throw new IOException("Failed to create cached content: " + response.code() + " - " + responseBody);
             }
             
-            String responseBody = response.body().string();
             JsonNode root = objectMapper.readTree(responseBody);
             String cacheId = root.path("name").asText();
+            
+            if (cacheId == null || cacheId.isEmpty()) {
+                log.error("Cache creation returned empty cache ID. Response: {}", responseBody);
+                throw new IOException("Cache creation failed: empty cache ID");
+            }
             
             log.info("Created cached content: {}", cacheId);
             return cacheId;

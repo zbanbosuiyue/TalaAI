@@ -14,7 +14,7 @@ services:
   # PostgreSQL - Operational Database (CORE - Always runs)
   postgres:
     image: postgres:16-alpine
-    container_name: tala-postgres-dev
+    container_name: postgres-dev
     platform: linux/arm64
     environment:
       POSTGRES_DB: tala_db
@@ -47,7 +47,7 @@ services:
   # Redis - Cache (CORE - Always runs)
   redis:
     image: redis:7-alpine
-    container_name: tala-redis-dev
+    container_name: redis-dev
     platform: linux/arm64
     ports:
       - "6379:6379"
@@ -73,7 +73,7 @@ services:
     profiles:
       - analytics
     image: clickhouse/clickhouse-server:24.1-alpine
-    container_name: tala-clickhouse-dev
+    container_name: clickhouse-dev
     platform: linux/arm64
     ports:
       - "8123:8123"
@@ -105,7 +105,7 @@ services:
     profiles:
       - events
     image: confluentinc/cp-zookeeper:7.5.0
-    container_name: tala-zookeeper-dev
+    container_name: zookeeper-dev
     platform: linux/arm64
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
@@ -129,7 +129,7 @@ services:
     profiles:
       - events
     image: confluentinc/cp-kafka:7.5.0
-    container_name: tala-kafka-dev
+    container_name: kafka-dev
     platform: linux/arm64
     depends_on:
       - zookeeper
@@ -163,7 +163,7 @@ services:
     profiles:
       - monitoring
     image: prom/prometheus:latest
-    container_name: tala-prometheus-dev
+    container_name: prometheus-dev
     platform: linux/arm64
     ports:
       - "9090:9090"
@@ -193,7 +193,7 @@ services:
     profiles:
       - monitoring
     image: grafana/grafana:latest
-    container_name: tala-grafana-dev
+    container_name: grafana-dev
     platform: linux/arm64
     ports:
       - "3000:3000"
@@ -221,7 +221,7 @@ services:
   # MinIO - Object Storage (CORE - Always runs)
   minio:
     image: minio/minio:latest
-    container_name: tala-minio-dev
+    container_name: minio-dev
     platform: linux/arm64
     ports:
       - "9000:9000"

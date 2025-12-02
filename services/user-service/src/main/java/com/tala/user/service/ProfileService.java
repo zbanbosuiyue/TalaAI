@@ -65,6 +65,23 @@ public class ProfileService {
     }
     
     @Transactional(readOnly = true)
+    public Long getDefaultProfileId(Long userId) {
+        List<Profile> profiles = profileRepository.findByUserIdAndNotDeleted(userId);
+        
+        if (profiles.isEmpty()) {
+            throw new TalaException(ErrorCode.PROFILE_NOT_FOUND, 
+                "User has no profiles: " + userId);
+        }
+        
+        // Return default profile if exists, otherwise return first profile
+        return profiles.stream()
+            .filter(Profile::getIsDefault)
+            .findFirst()
+            .map(Profile::getId)
+            .orElse(profiles.get(0).getId());
+    }
+    
+    @Transactional(readOnly = true)
     public ProfileResponse getProfile(Long profileId) {
         Profile profile = profileRepository.findByIdAndNotDeleted(profileId)
             .orElseThrow(() -> new TalaException(ErrorCode.USER_NOT_FOUND, 

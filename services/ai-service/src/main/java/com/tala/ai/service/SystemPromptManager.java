@@ -40,29 +40,33 @@ public class SystemPromptManager {
     
     /**
      * Get or create cached content for event extraction
+     * Returns null if caching is not available (caller should fallback to non-cached mode)
      */
-    public String getEventExtractionCache() throws IOException {
+    public String getEventExtractionCache() {
         return getOrCreateCache(EVENT_EXTRACTION_PROMPT, buildEventExtractionSystemPrompt());
     }
     
     /**
      * Get or create cached content for chat classification
+     * Returns null if caching is not available (caller should fallback to non-cached mode)
      */
-    public String getChatClassifierCache() throws IOException {
+    public String getChatClassifierCache() {
         return getOrCreateCache(CHAT_CLASSIFIER_PROMPT, buildChatClassifierSystemPrompt());
     }
     
     /**
      * Get or create cached content for attachment parsing
+     * Returns null if caching is not available (caller should fallback to non-cached mode)
      */
-    public String getAttachmentParserCache() throws IOException {
+    public String getAttachmentParserCache() {
         return getOrCreateCache(ATTACHMENT_PARSER_PROMPT, buildAttachmentParserSystemPrompt());
     }
     
     /**
      * Get or create cached content (lazy initialization)
+     * Returns null if caching fails (graceful degradation to non-cached mode)
      */
-    private String getOrCreateCache(String promptKey, String systemPrompt) throws IOException {
+    private String getOrCreateCache(String promptKey, String systemPrompt) {
         String cachedId = cachedPrompts.get(promptKey);
         
         if (cachedId == null) {
@@ -70,10 +74,17 @@ public class SystemPromptManager {
                 // Double-check locking
                 cachedId = cachedPrompts.get(promptKey);
                 if (cachedId == null) {
-                    log.info("Creating new cached content for: {}", promptKey);
-                    cachedId = geminiService.createCachedContent(systemPrompt, promptKey);
-                    cachedPrompts.put(promptKey, cachedId);
-                    log.info("Cached content created: {} -> {}", promptKey, cachedId);
+                    try {
+                        log.info("Creating new cached content for: {}", promptKey);
+                        cachedId = geminiService.createCachedContent(systemPrompt, promptKey);
+                        cachedPrompts.put(promptKey, cachedId);
+                        log.info("Cached content created: {} -> {}", promptKey, cachedId);
+                    } catch (IOException e) {
+                        log.warn("Failed to create cached content for {}: {}. Falling back to non-cached mode.", 
+                                promptKey, e.getMessage());
+                        // Return null to signal caller to use non-cached mode
+                        return null;
+                    }
                 }
             }
         }
@@ -87,6 +98,27 @@ public class SystemPromptManager {
     public void clearAllCaches() {
         cachedPrompts.clear();
         log.info("All prompt caches cleared");
+    }
+    
+    /**
+     * Get system prompt for event extraction (for non-cached fallback)
+     */
+    public String getEventExtractionSystemPrompt() {
+        return buildEventExtractionSystemPrompt();
+    }
+    
+    /**
+     * Get system prompt for chat classification (for non-cached fallback)
+     */
+    public String getChatClassifierSystemPrompt() {
+        return buildChatClassifierSystemPrompt();
+    }
+    
+    /**
+     * Get system prompt for attachment parser (for non-cached fallback)
+     */
+    public String getAttachmentParserSystemPrompt() {
+        return buildAttachmentParserSystemPrompt();
     }
     
     /**

@@ -57,7 +57,7 @@ class ChatEventWithAttachmentsTest {
     @Test
     @Order(1)
     @Transactional
-    void testOriginalEventWithSingleAttachment() {
+    void testOriginalEventWithSingleAttachment() throws Exception {
         System.out.println("\n=== TEST 1: OriginalEvent with Single Attachment ===");
         
         // Create ChatEventRequest

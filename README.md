@@ -64,7 +64,7 @@ AI-first baby care assistant backend - Clean slate rewrite optimized for Apple S
 
 5. **Run a service**
    ```bash
-   cd services/event-service
+   cd services/user-service
    mvn spring-boot:run
    ```
 
@@ -168,7 +168,7 @@ backend/
 │   ├── common-kafka/         # Kafka producers/consumers
 │   └── common-clickhouse/    # ClickHouse utilities
 ├── services/                 # Microservices
-│   ├── event-service/        # Event management
+│   ├── origin-data-service/  # Event sourcing & original data
 │   ├── query-service/        # Analytics queries
 │   ├── ai-service/           # AI/ML features
 │   ├── user-service/         # User management
@@ -205,7 +205,7 @@ mvn jacoco:report
 
 ```bash
 # Run with Maven
-cd services/event-service
+cd services/user-service
 mvn spring-boot:run
 
 # Run with specific profile

@@ -1,7 +1,6 @@
 package com.tala.origindata.domain;
 
 import com.tala.core.domain.BaseAttachmentEntity;
-import com.tala.core.domain.AttachmentSupport;
 import com.tala.origindata.constant.DataSourceType;
 import io.hypersistence.utils.hibernate.type.json.JsonBinaryType;
 import jakarta.persistence.*;
@@ -10,8 +9,6 @@ import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.Type;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Original Event - Top-level event sourcing entity
@@ -52,15 +49,6 @@ public class OriginalEvent extends BaseAttachmentEntity {
     @Type(JsonBinaryType.class)
     @Column(name = "raw_payload", columnDefinition = "jsonb", nullable = false)
     private String rawPayload;
-    
-    /**
-     * Override parent's attachment_ids column to use legacy column name
-     * Maintains backward compatibility with existing schema
-     */
-    @Type(JsonBinaryType.class)
-    @Column(name = "attachment_file_ids", columnDefinition = "jsonb", nullable = false)
-    @Builder.Default
-    private List<Long> attachmentIds = new ArrayList<>();
     
     @Column(name = "ai_processed")
     @Builder.Default

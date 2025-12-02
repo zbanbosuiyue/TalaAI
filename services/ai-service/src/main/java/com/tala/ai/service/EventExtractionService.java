@@ -74,16 +74,26 @@ public class EventExtractionService {
         }
         
         try {
-            // Get cached system prompt
+            // Get cached system prompt (returns null if caching unavailable)
             String cachedPromptId = systemPromptManager.getEventExtractionCache();
             
             // Build dynamic context (not cached)
             String dynamicContext = buildDynamicContext(attachmentContext, babyProfileContext, 
                     chatHistory, userLocalTime);
             
-            // Call Gemini with cached prompt and tracking
-            String aiResponse = geminiService.generateContentWithCache(
-                    cachedPromptId, dynamicContext, userMessage, profileId, userId, "EventExtraction");
+            String aiResponse;
+            if (cachedPromptId != null) {
+                // Use cached prompt (preferred)
+                log.debug("Using cached system prompt for event extraction");
+                aiResponse = geminiService.generateContentWithCache(
+                        cachedPromptId, dynamicContext, userMessage, profileId, userId, "EventExtraction");
+            } else {
+                // Fallback to non-cached mode
+                log.debug("Cache unavailable, using non-cached mode for event extraction");
+                String systemPrompt = systemPromptManager.getEventExtractionSystemPrompt();
+                aiResponse = geminiService.generateContentWithSystemPrompt(
+                        systemPrompt, dynamicContext, userMessage, profileId, userId, "EventExtraction");
+            }
             
             // Parse response
             EventExtractionResult result = parseExtractionResponse(aiResponse);

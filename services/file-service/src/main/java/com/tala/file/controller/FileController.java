@@ -1,6 +1,7 @@
 package com.tala.file.controller;
 
 import com.tala.file.domain.FileMetadata;
+import com.tala.file.security.FileSecurityValidator;
 import com.tala.file.service.FileManagementService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,6 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
 import java.util.List;
+import java.util.Map;
 
 /**
  * File upload and management API
@@ -24,24 +26,35 @@ import java.util.List;
 public class FileController {
     
     private final FileManagementService fileManagementService;
+    private final FileSecurityValidator securityValidator;
     
     /**
-     * Upload file
+     * Upload file with security validation
      */
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<FileMetadata> uploadFile(
+    public ResponseEntity<?> uploadFile(
         @RequestParam("file") MultipartFile file,
         @RequestParam("userId") Long userId,
         @RequestParam(value = "profileId", required = false) Long profileId
     ) {
         log.info("POST /api/v1/files/upload - userId={}, filename={}", userId, file.getOriginalFilename());
         
+        // Validate file security
+        FileSecurityValidator.ValidationResult validationResult = securityValidator.validate(file, userId);
+        if (!validationResult.isValid()) {
+            log.warn("File validation failed: userId={}, filename={}, error={}", 
+                    userId, file.getOriginalFilename(), validationResult.getErrorMessage());
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", validationResult.getErrorMessage()));
+        }
+        
         try {
             FileMetadata metadata = fileManagementService.uploadFile(file, userId, profileId);
             return ResponseEntity.ok(metadata);
         } catch (Exception e) {
             log.error("Failed to upload file", e);
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("error", "Failed to upload file: " + e.getMessage()));
         }
     }
     

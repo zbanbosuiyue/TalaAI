@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
@@ -39,6 +40,13 @@ public class JwtAuthenticationGatewayFilter implements GlobalFilter, Ordered {
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         ServerHttpRequest request = exchange.getRequest();
         String path = request.getPath().value();
+        HttpMethod method = request.getMethod();
+
+        // Allow CORS preflight requests without authentication
+        if (HttpMethod.OPTIONS.equals(method)) {
+            log.debug("CORS preflight request for path: {}", path);
+            return chain.filter(exchange);
+        }
         
         // Skip authentication for public paths
         if (isPublicPath(path)) {
