@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -17,10 +18,13 @@ import java.io.IOException;
 import java.util.Collections;
 
 /**
- * Reusable JWT Authentication Filter for all services
- * Can be extended or used directly in service security configurations
+ * JWT Authentication Filter for servlet-based applications
+ * Validates JWT tokens and sets Spring Security context
+ * 
+ * NOTE: Only loaded in SERVLET applications, NOT in reactive (WebFlux) applications like gateway-service
  */
 @Component
+@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @Slf4j
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     
