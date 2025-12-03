@@ -11,8 +11,13 @@ import java.util.Map;
 
 /**
  * Feign client for User Service
+ * Automatically propagates JWT tokens for authenticated requests
  */
-@FeignClient(name = "user-service", url = "${feign.services.user-service.url}")
+@FeignClient(
+    name = "user-service", 
+    url = "${feign.services.user-service.url}",
+    configuration = com.tala.core.feign.FeignJwtConfig.class
+)
 public interface UserServiceClient {
     
     @GetMapping("/api/v1/profiles/{id}")

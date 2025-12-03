@@ -10,8 +10,13 @@ import java.util.List;
 
 /**
  * Feign client for Reminder Service
+ * Automatically propagates JWT tokens for authenticated requests
  */
-@FeignClient(name = "reminder-service", url = "${feign.services.reminder-service.url}")
+@FeignClient(
+    name = "reminder-service", 
+    url = "${feign.services.reminder-service.url}",
+    configuration = com.tala.core.feign.FeignJwtConfig.class
+)
 public interface ReminderServiceClient {
     
     @GetMapping("/api/v1/reminders/due")

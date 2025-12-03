@@ -1,6 +1,6 @@
 package com.tala.ai.controller;
 
-import com.tala.ai.client.OriginDataServiceClient;
+import com.tala.ai.client.OriginDataServiceFeignClient;
 import com.tala.ai.dto.EventExtractionResult;
 import com.tala.ai.service.AIProcessingOrchestrator;
 import lombok.Data;
@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 public class AIProcessingController {
     
     private final AIProcessingOrchestrator orchestrator;
-    private final OriginDataServiceClient originDataServiceClient;
+    private final OriginDataServiceFeignClient originDataServiceFeignClient;
     
     /**
      * Process user input through complete AI pipeline
@@ -105,8 +105,9 @@ public class AIProcessingController {
         chatEventRequest.put("events", events);
         
         // Send to origin-data-service
-        String response = originDataServiceClient.sendChatEvent(chatEventRequest);
+        OriginDataServiceFeignClient.ChatEventResponse response = originDataServiceFeignClient.sendChatEvent(chatEventRequest);
         log.info("Successfully sent {} events to origin-data-service", events.size());
+        log.debug("Origin-data-service response: {}", response.message);
     }
     
     /**

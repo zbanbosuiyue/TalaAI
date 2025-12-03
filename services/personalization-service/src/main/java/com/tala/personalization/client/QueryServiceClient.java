@@ -11,8 +11,13 @@ import java.util.Map;
 
 /**
  * Feign client for Query Service
+ * Automatically propagates JWT tokens for authenticated requests
  */
-@FeignClient(name = "query-service", url = "${feign.services.query-service.url}")
+@FeignClient(
+    name = "query-service", 
+    url = "${feign.services.query-service.url}",
+    configuration = com.tala.core.feign.FeignJwtConfig.class
+)
 public interface QueryServiceClient {
     
     @GetMapping("/api/v1/analytics/daily-context")

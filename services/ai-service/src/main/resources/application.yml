@@ -76,13 +76,15 @@ management:
 gemini:
   api-key: ${GEMINI_API_KEY:}
   model: ${GEMINI_MODEL:gemini-2.5-pro-latest}
+  cache:
+    enabled: ${GEMINI_CACHE_ENABLED:false}  # Disable by default (free tier doesn't support caching)
 
 # External services on Mac Mini (192.168.1.112)
 external:
   mem0:
     url: ${MEM0_URL:http://192.168.1.112:9002}
     api-key: ${MEM0_API_KEY:}
-    enabled: ${MEM0_ENABLED:true}
+    enabled: ${MEM0_ENABLED:false}  # Disable by default (optional service)
   mlx-audio:
     url: ${MLX_AUDIO_URL:http://192.168.1.112:8000}
   mailcow:

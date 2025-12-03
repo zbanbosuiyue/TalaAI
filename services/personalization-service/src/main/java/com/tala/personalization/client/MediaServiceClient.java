@@ -10,8 +10,13 @@ import java.util.List;
 
 /**
  * Feign client for Media Service
+ * Automatically propagates JWT tokens for authenticated requests
  */
-@FeignClient(name = "media-service", url = "${feign.services.media-service.url}")
+@FeignClient(
+    name = "media-service", 
+    url = "${feign.services.media-service.url}",
+    configuration = com.tala.core.feign.FeignJwtConfig.class
+)
 public interface MediaServiceClient {
     
     @GetMapping("/api/v1/media")

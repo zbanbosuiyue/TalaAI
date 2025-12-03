@@ -103,7 +103,7 @@
  * 
  * <h3>Phase 6: Event Persistence</h3>
  * <pre>{@code
- * OriginDataServiceClient.sendChatEvent(chatEventRequest)
+ * OriginDataServiceFeignClient.sendChatEvent(chatEventRequest)
  *   ├─ Build ChatEventRequest:
  *   │   ├─ profileId
  *   │   ├─ userMessage

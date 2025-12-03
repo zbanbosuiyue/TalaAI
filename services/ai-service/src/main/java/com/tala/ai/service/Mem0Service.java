@@ -57,17 +57,26 @@ public class Mem0Service {
         }
         
         try {
-            String url = mem0Url + "/v1/memories/";
+            // Use /add endpoint (not /v1/memories/)
+            String url = mem0Url + "/add";
+            
+            // User key format: profile-{profileId}
+            String mem0UserId = String.format("profile-%d", profileId);
             
             Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("user_id", mem0UserId);
             requestBody.put("messages", List.of(Map.of(
                     "role", role,
                     "content", content
             )));
             
-            // User ID for mem0 (combine userId and profileId for context isolation)
-            String mem0UserId = String.format("user_%d_profile_%d", userId, profileId);
-            requestBody.put("user_id", mem0UserId);
+            // Add metadata
+            Map<String, Object> metadata = new HashMap<>();
+            metadata.put("profile_id", profileId);
+            if (userId != null) {
+                metadata.put("user_id", userId);
+            }
+            requestBody.put("metadata", metadata);
             
             String jsonBody = objectMapper.writeValueAsString(requestBody);
             
@@ -102,8 +111,9 @@ public class Mem0Service {
         }
         
         try {
-            String mem0UserId = String.format("user_%d_profile_%d", userId, profileId);
-            String url = mem0Url + "/v1/memories/?user_id=" + mem0UserId + "&limit=10";
+            // User key format: profile-{profileId}
+            String mem0UserId = String.format("profile-%d", profileId);
+            String url = mem0Url + "/get_all?user_id=" + mem0UserId + "&limit=10";
             
             Request request = new Request.Builder()
                 .url(url)
@@ -154,12 +164,14 @@ public class Mem0Service {
         }
         
         try {
-            String mem0UserId = String.format("user_%d_profile_%d", userId, profileId);
-            String url = mem0Url + "/v1/memories/search/";
+            // User key format: profile-{profileId}
+            String mem0UserId = String.format("profile-%d", profileId);
+            // Use /search endpoint (not /v1/memories/search/)
+            String url = mem0Url + "/search";
             
             Map<String, Object> requestBody = new HashMap<>();
-            requestBody.put("query", query);
             requestBody.put("user_id", mem0UserId);
+            requestBody.put("query", query);
             requestBody.put("limit", 5);
             
             String jsonBody = objectMapper.writeValueAsString(requestBody);
@@ -177,7 +189,12 @@ public class Mem0Service {
                 
                 String responseBody = response.body().string();
                 JsonNode root = objectMapper.readTree(responseBody);
-                JsonNode results = root.path("results");
+                // Mem0 response format: {"status": "ok", "result": {"results": [...]}}
+                JsonNode resultNode = root.path("result");
+                if (resultNode.isMissingNode()) {
+                    return null;
+                }
+                JsonNode results = resultNode.path("results");
                 
                 if (!results.isArray() || results.size() == 0) {
                     return null;

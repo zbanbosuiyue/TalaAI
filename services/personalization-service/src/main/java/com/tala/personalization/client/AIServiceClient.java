@@ -10,8 +10,13 @@ import java.util.List;
 
 /**
  * Feign client for AI Service
+ * Automatically propagates JWT tokens for authenticated requests
  */
-@FeignClient(name = "ai-service", url = "${feign.services.ai-service.url}")
+@FeignClient(
+    name = "ai-service", 
+    url = "${feign.services.ai-service.url}",
+    configuration = com.tala.core.feign.FeignJwtConfig.class
+)
 public interface AIServiceClient {
     
     @GetMapping("/api/v1/ai/today-overview")

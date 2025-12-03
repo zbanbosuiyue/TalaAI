@@ -253,15 +253,19 @@ services:
       JWT_SECRET: dev-secret-key-change-in-production-minimum-64-characters-long-for-security
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GEMINI_MODEL: gemini-2.5-flash
+      GEMINI_CACHE_ENABLED: ${GEMINI_CACHE_ENABLED:-false}
       MEM0_URL: ${MEM0_BASE_URL:-http://192.168.1.112:9002}
-      MEM0_ENABLED: ${MEM0_ENABLED:-true}
+      MEM0_ENABLED: ${MEM0_ENABLED:-false}
       MLX_AUDIO_URL: ${MLXAUDIO_SERVICE_URL:-http://192.168.1.112:8000}
-      SERVICES_ORIGIN_DATA_SERVICE_URL: http://origin-data-service:8089
+      ORIGIN_DATA_SERVICE_URL: http://origin-data-service:8089
+      USER_SERVICE_URL: http://user-service:8081
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_started
+      user-service:
+        condition: service_healthy
       origin-data-service:
         condition: service_healthy
     healthcheck:

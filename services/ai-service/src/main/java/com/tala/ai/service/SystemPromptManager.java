@@ -30,6 +30,9 @@ public class SystemPromptManager {
     
     private final GeminiService geminiService;
     
+    @org.springframework.beans.factory.annotation.Value("${gemini.cache.enabled:false}")
+    private boolean cacheEnabled;
+    
     // Cache storage: promptKey -> cachedContentId
     private final Map<String, String> cachedPrompts = new ConcurrentHashMap<>();
     
@@ -64,32 +67,44 @@ public class SystemPromptManager {
     
     /**
      * Get or create cached content (lazy initialization)
-     * Returns null if caching fails (graceful degradation to non-cached mode)
+     * 
+     * NOTE: This implementation uses IMPLICIT CACHING (not Gemini API caching)
+     * - Gemini automatically caches prompts >1024 tokens on their server
+     * - We just track usage in memory for monitoring
+     * - No API calls to create caches (simpler, more reliable)
+     * - Works with free tier (no quota limits)
+     * 
+     * Returns null to signal caller to always use non-cached mode (which triggers implicit caching)
      */
     private String getOrCreateCache(String promptKey, String systemPrompt) {
-        String cachedId = cachedPrompts.get(promptKey);
+        // Always return null to use "non-cached mode"
+        // This actually triggers Gemini's implicit caching for prompts >1024 tokens
+        // Much simpler and more reliable than explicit API caching
         
-        if (cachedId == null) {
+        if (!cachedPrompts.containsKey(promptKey)) {
             synchronized (this) {
-                // Double-check locking
-                cachedId = cachedPrompts.get(promptKey);
-                if (cachedId == null) {
-                    try {
-                        log.info("Creating new cached content for: {}", promptKey);
-                        cachedId = geminiService.createCachedContent(systemPrompt, promptKey);
-                        cachedPrompts.put(promptKey, cachedId);
-                        log.info("Cached content created: {} -> {}", promptKey, cachedId);
-                    } catch (IOException e) {
-                        log.warn("Failed to create cached content for {}: {}. Falling back to non-cached mode.", 
-                                promptKey, e.getMessage());
-                        // Return null to signal caller to use non-cached mode
-                        return null;
-                    }
+                if (!cachedPrompts.containsKey(promptKey)) {
+                    // Track that we're using this prompt (for monitoring)
+                    cachedPrompts.put(promptKey, "implicit-cache");
+                    log.info("📝 Registered prompt for implicit caching: {} (~{} tokens)", 
+                            promptKey, estimateTokenCount(systemPrompt));
                 }
             }
         }
         
-        return cachedId;
+        // Return null to signal "non-cached mode" which triggers implicit caching
+        return null;
+    }
+    
+    /**
+     * Estimate token count (rough approximation)
+     */
+    private int estimateTokenCount(String text) {
+        if (text == null || text.isEmpty()) {
+            return 0;
+        }
+        // Rough estimate: 1 token ≈ 4 characters
+        return text.length() / 4;
     }
     
     /**

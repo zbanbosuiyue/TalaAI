@@ -1,6 +1,6 @@
 package com.tala.query.service;
 
-import com.tala.query.client.OriginDataServiceClient;
+import com.tala.query.client.OriginDataServiceFeignClient;
 import com.tala.query.domain.DailyChildSummary;
 import com.tala.query.dto.DailyContextResponse;
 import com.tala.query.repository.DailyChildSummaryRepository;
@@ -9,7 +9,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -22,7 +24,7 @@ import java.util.stream.Collectors;
 public class DailyAggregationService {
     
     private final DailyChildSummaryRepository repository;
-    private final OriginDataServiceClient originDataServiceClient;
+    private final OriginDataServiceFeignClient originDataServiceFeignClient;
     
     /**
      * Get daily context for AI services
@@ -91,9 +93,13 @@ public class DailyAggregationService {
         }
         
         // Fetch timeline events from origin-data-service
-        List<OriginDataServiceClient.TimelineEntryData> timelineEntries = new ArrayList<>();
+        List<OriginDataServiceFeignClient.TimelineEntryResponse> timelineEntries = new ArrayList<>();
         try {
-            timelineEntries = originDataServiceClient.getTimelineByDateRange(profileId, date);
+            // Convert date to time range (start of day to end of day)
+            Instant startTime = date.atStartOfDay(ZoneId.systemDefault()).toInstant();
+            Instant endTime = date.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
+            
+            timelineEntries = originDataServiceFeignClient.getTimelineRange(profileId, startTime, endTime);
             log.info("Fetched {} timeline entries for profile={}, date={}", 
                 timelineEntries.size(), profileId, date);
         } catch (Exception e) {
@@ -112,7 +118,7 @@ public class DailyAggregationService {
         
         // Count events by type
         Map<String, Integer> eventTypeCounts = new HashMap<>();
-        for (OriginDataServiceClient.TimelineEntryData entry : timelineEntries) {
+        for (OriginDataServiceFeignClient.TimelineEntryResponse entry : timelineEntries) {
             String type = entry.timelineType != null ? entry.timelineType : "UNKNOWN";
             eventTypeCounts.put(type, eventTypeCounts.getOrDefault(type, 0) + 1);
             

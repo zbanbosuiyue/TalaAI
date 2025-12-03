@@ -16,7 +16,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
  * - Priority and urgency calculation
  * - Multi-service data aggregation
  */
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = {"com.tala.personalization", "com.tala.core"})
 @EnableFeignClients
 @EnableCaching
 @EnableAsync

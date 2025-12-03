@@ -79,6 +79,11 @@ management:
       prometheus:
         enabled: true
 
+# Internal microservices
+services:
+  origin-data-service:
+    url: ${ORIGIN_DATA_SERVICE_URL:http://localhost:8089}
+
 logging:
   level:
     root: INFO

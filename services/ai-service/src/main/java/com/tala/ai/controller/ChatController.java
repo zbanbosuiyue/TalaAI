@@ -1,8 +1,8 @@
 package com.tala.ai.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tala.ai.client.OriginDataServiceClient;
-import com.tala.ai.client.UserServiceClient;
+import com.tala.ai.client.OriginDataServiceFeignClient;
+import com.tala.ai.client.UserServiceFeignClient;
 import com.tala.core.exception.ErrorCode;
 import com.tala.core.exception.TalaException;
 import com.tala.ai.dto.EventExtractionResult;
@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -45,11 +46,12 @@ import java.util.stream.Collectors;
 public class ChatController {
     
     private final AIProcessingOrchestrator orchestrator;
-    private final OriginDataServiceClient originDataServiceClient;
-    private final UserServiceClient userServiceClient;
+    private final OriginDataServiceFeignClient originDataServiceFeignClient;
+    private final UserServiceFeignClient userServiceFeignClient;
     private final Mem0Service mem0Service;
     private final ChatMessageService chatMessageService;
     private final ContextEnrichmentService contextEnrichmentService;
+    private final Executor asyncExecutor;
     
     /**
      * Chat with AI (streaming via SSE)
@@ -88,8 +90,10 @@ public class ChatController {
             log.warn("Failed to store user message, continuing with processing", e);
         }
         
-        // Process chat asynchronously
-        CompletableFuture.runAsync(() -> processChatWithStreaming(request, emitter));
+        // Process chat asynchronously - JWT token is automatically propagated via RequestContextTaskDecorator
+        CompletableFuture.runAsync(() -> {
+            processChatWithStreaming(request, emitter);
+        }, asyncExecutor);
         
         return emitter;
     }
@@ -315,10 +319,10 @@ public class ChatController {
         chatEventRequest.put("events", events);
         
         // Send to origin-data-service
-        String response = originDataServiceClient.sendChatEvent(chatEventRequest);
+        OriginDataServiceFeignClient.ChatEventResponse response = originDataServiceFeignClient.sendChatEvent(chatEventRequest);
         log.info("Successfully sent {} events to origin-data-service", events.size());
         
-        return response;
+        return response.message != null ? response.message : "Events sent successfully";
     }
     
     /**
@@ -326,7 +330,7 @@ public class ChatController {
      */
     private String buildBabyProfileContext(Long profileId) {
         try {
-            UserServiceClient.ProfileData profile = userServiceClient.getProfile(profileId);
+            UserServiceFeignClient.ProfileResponse profile = userServiceFeignClient.getProfile(profileId);
             
             // Calculate age from birth date
             String ageDescription = calculateAgeDescription(profile.birthDate);

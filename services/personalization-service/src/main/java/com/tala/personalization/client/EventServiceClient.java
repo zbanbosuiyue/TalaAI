@@ -11,8 +11,13 @@ import java.util.List;
 
 /**
  * Feign client for Origin Data Service timeline
+ * Automatically propagates JWT tokens for authenticated requests
  */
-@FeignClient(name = "origin-data-service", url = "${feign.services.origin-data-service.url}")
+@FeignClient(
+    name = "origin-data-service", 
+    url = "${feign.services.origin-data-service.url}",
+    configuration = com.tala.core.feign.FeignJwtConfig.class
+)
 public interface EventServiceClient {
     
     @GetMapping("/api/v1/timeline/profile/{profileId}/range")

@@ -37,6 +37,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             String authHeader = request.getHeader(JwtConstants.AUTHORIZATION_HEADER);
             
+            // Store JWT token in thread-local context for downstream service calls
+            if (authHeader != null && authHeader.startsWith(JwtConstants.BEARER_PREFIX)) {
+                JwtContextHolder.setToken(authHeader);
+            }
+            
             // Check for user ID header from gateway (already validated)
             String userIdHeader = request.getHeader(JwtConstants.USER_ID_HEADER);
             if (userIdHeader != null) {
@@ -73,9 +78,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
         } catch (Exception e) {
             log.error("Cannot set user authentication: {}", e.getMessage());
+        } finally {
+            try {
+                filterChain.doFilter(request, response);
+            } finally {
+                // Clean up JWT context after request completes
+                JwtContextHolder.clear();
+            }
         }
-        
-        filterChain.doFilter(request, response);
     }
     
     private void setAuthentication(HttpServletRequest request, Long userId) {
@@ -95,6 +105,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
         // Skip filter for public endpoints
         return path.startsWith("/api/v1/auth/") || 
-               path.startsWith("/actuator/");
+               path.startsWith("/actuator/") ||
+               path.equals("/error");  // Skip error page
     }
 }

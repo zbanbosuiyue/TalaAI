@@ -6,8 +6,13 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 /**
  * Feign client for File Service
+ * Automatically propagates JWT tokens for authenticated requests
  */
-@FeignClient(name = "file-service", url = "${feign.services.file-service.url:http://localhost:8088}")
+@FeignClient(
+    name = "file-service", 
+    url = "${feign.services.file-service.url:http://localhost:8088}",
+    configuration = com.tala.core.feign.FeignJwtConfig.class
+)
 public interface FileServiceClient {
     
     @GetMapping("/api/v1/files/{fileId}")
