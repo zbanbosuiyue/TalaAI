@@ -64,4 +64,7 @@ public class TimelineEntry extends BaseEntity {
     
     @Column(name = "ai_model_version", length = 50)
     private String aiModelVersion;
+
+    @Column(name = "original_user_message", columnDefinition = "TEXT")
+    private String originalUserMessage;
 }

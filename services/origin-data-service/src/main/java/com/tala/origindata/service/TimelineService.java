@@ -128,6 +128,7 @@ public class TimelineService {
             .aiTags(entry.getAiTags())
             .location(entry.getLocation())
             .aiModelVersion(entry.getAiModelVersion())
+            .originalUserMessage(entry.getOriginalUserMessage())
             .attachments(attachments)
             .createdAt(entry.getCreatedAt())
             .updatedAt(entry.getUpdatedAt())

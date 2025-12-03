@@ -109,9 +109,7 @@ spring:
 server:
   port: ${GATEWAY_SERVICE_PORT:8080}
   compression:
-    # Disabled for gateway to avoid conflicts with proxying
-    # Backend services handle their own compression
-    enabled: false
+    enabled: true
 
 management:
   endpoints:

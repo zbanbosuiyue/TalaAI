@@ -52,7 +52,12 @@ public class EventProcessorService {
         
         try {
             // Parse the raw payload based on source type
-            if (originalEvent.getSourceType() == DataSourceType.AI_CHAT) {
+            // HOME_EVENT, DAY_CARE_REPORT, INCIDENT_REPORT, HEALTH_REPORT are all processed as AI chat events
+            if (originalEvent.getSourceType() == DataSourceType.AI_CHAT ||
+                originalEvent.getSourceType() == DataSourceType.HOME_EVENT ||
+                originalEvent.getSourceType() == DataSourceType.DAY_CARE_REPORT ||
+                originalEvent.getSourceType() == DataSourceType.INCIDENT_REPORT ||
+                originalEvent.getSourceType() == DataSourceType.HEALTH_REPORT) {
                 timelineIds = processAiChatEvent(originalEvent);
             } else {
                 log.warn("Unsupported source type for processing: {}", originalEvent.getSourceType());
@@ -74,6 +79,7 @@ public class EventProcessorService {
     
     /**
      * Process AI Chat event
+     * Data model: 1 OriginalEvent -> 1 HomeEvent -> N TimelineEntries
      */
     private List<Long> processAiChatEvent(OriginalEvent originalEvent) throws Exception {
         List<Long> timelineIds = new ArrayList<>();
@@ -88,24 +94,26 @@ public class EventProcessorService {
             return timelineIds;
         }
         
-        // Process each extracted event
+        // Create ONE HomeEvent for the entire chat message
+        HomeEvent homeEvent = createHomeEventFromChatRequest(
+                originalEvent, chatRequest);
+        
+        log.info("Created HomeEvent (id={}) for chat message with {} extracted events", 
+                homeEvent.getId(), chatRequest.getEvents().size());
+        
+        // Create N TimelineEntries, one for each extracted event
         for (ChatEventRequest.ExtractedEvent extractedEvent : chatRequest.getEvents()) {
             try {
-                // Create HomeEvent
-                HomeEvent homeEvent = createHomeEventFromExtracted(
-                        originalEvent, extractedEvent);
-                
-                // Create Timeline entry
                 TimelineEntry timeline = createTimelineEntryFromExtracted(
-                        originalEvent, homeEvent, extractedEvent);
+                        originalEvent, homeEvent, chatRequest, extractedEvent);
                 
                 timelineIds.add(timeline.getId());
                 
-                log.info("Created HomeEvent (id={}) and Timeline (id={}) for event type: {}", 
-                        homeEvent.getId(), timeline.getId(), extractedEvent.getEventType());
+                log.info("Created Timeline (id={}) for event type: {}", 
+                        timeline.getId(), extractedEvent.getEventType());
                 
             } catch (Exception e) {
-                log.error("Failed to process extracted event: type={}", 
+                log.error("Failed to create timeline entry for event type: {}", 
                         extractedEvent.getEventType(), e);
                 // Continue processing other events
             }
@@ -115,29 +123,37 @@ public class EventProcessorService {
     }
     
     /**
-     * Create HomeEvent from extracted event data
+     * Create ONE HomeEvent from the entire chat request
+     * This represents the parent's single message that may contain multiple events
      */
-    private HomeEvent createHomeEventFromExtracted(
+    private HomeEvent createHomeEventFromChatRequest(
             OriginalEvent originalEvent,
-            ChatEventRequest.ExtractedEvent extractedEvent) throws Exception {
+            ChatEventRequest chatRequest) throws Exception {
         
-        // Map event type string to HomeEventType enum
-        HomeEventType homeEventType = mapToHomeEventType(extractedEvent.getEventType());
+        // Use the first event's type as the primary type, or default to NOTES if multiple types
+        ChatEventRequest.ExtractedEvent firstEvent = chatRequest.getEvents().get(0);
+        HomeEventType homeEventType = chatRequest.getEvents().size() == 1
+                ? mapToHomeEventType(firstEvent.getEventType())
+                : HomeEventType.NOTES; // Multiple events -> treat as general note
         
-        // Determine event time
-        Instant eventTime = extractedEvent.getTimestamp() != null
-                ? extractedEvent.getTimestamp().atZone(ZoneId.systemDefault()).toInstant()
+        // Use first event's timestamp or original event time
+        Instant eventTime = firstEvent.getTimestamp() != null
+                ? firstEvent.getTimestamp().atZone(ZoneId.systemDefault()).toInstant()
                 : originalEvent.getEventTime();
         
-        // Extract title and description
-        String title = extractedEvent.getSummary() != null 
-                ? extractedEvent.getSummary() 
-                : homeEventType.name();
+        // Create a summary title
+        String title = chatRequest.getEvents().size() == 1
+                ? firstEvent.getSummary()
+                : String.format("%d events recorded", chatRequest.getEvents().size());
         
-        // Convert eventData to JSON string for details
-        String detailsJson = extractedEvent.getEventData() != null
-                ? objectMapper.writeValueAsString(extractedEvent.getEventData())
-                : null;
+        // Use AI message as description
+        String description = chatRequest.getAiMessage();
+        
+        // Store all events as JSON in details
+        String detailsJson = objectMapper.writeValueAsString(chatRequest.getEvents());
+        
+        // Extract location from first event
+        String location = extractLocationFromEventData(firstEvent.getEventData());
         
         // Build HomeEvent
         HomeEvent homeEvent = HomeEvent.builder()
@@ -146,9 +162,9 @@ public class EventProcessorService {
                 .eventType(homeEventType)
                 .eventTime(eventTime)
                 .title(title)
-                .description(extractedEvent.getSummary())
+                .description(description)
                 .details(detailsJson)
-                .location(extractLocationFromEventData(extractedEvent.getEventData()))
+                .location(location)
                 .build();
         
         return homeEventService.createHomeEvent(homeEvent);
@@ -160,16 +176,31 @@ public class EventProcessorService {
     private TimelineEntry createTimelineEntryFromExtracted(
             OriginalEvent originalEvent,
             HomeEvent homeEvent,
+            ChatEventRequest chatRequest,
             ChatEventRequest.ExtractedEvent extractedEvent) throws Exception {
         
         // Map to TimelineEventType
         TimelineEventType timelineType = mapToTimelineEventType(extractedEvent.getEventType());
         
-        // Extract AI tags
-        String aiTagsJson = extractedEvent.getEventData() != null 
-                && extractedEvent.getEventData().containsKey("ai_tags")
-                ? objectMapper.writeValueAsString(extractedEvent.getEventData().get("ai_tags"))
-                : "[]";
+        // Extract AI tags from event_data
+        String aiTagsJson = "[]";
+        if (extractedEvent.getEventData() != null && extractedEvent.getEventData().containsKey("ai_tags")) {
+            Object aiTagsObj = extractedEvent.getEventData().get("ai_tags");
+            log.debug("AI tags object type: {}, value: {}", 
+                    aiTagsObj != null ? aiTagsObj.getClass().getName() : "null", aiTagsObj);
+            if (aiTagsObj instanceof List || aiTagsObj instanceof String) {
+                aiTagsJson = objectMapper.writeValueAsString(aiTagsObj);
+                log.info("Extracted AI tags JSON: {}", aiTagsJson);
+            }
+        } else {
+            log.warn("No ai_tags found in eventData. EventData keys: {}", 
+                    extractedEvent.getEventData() != null ? extractedEvent.getEventData().keySet() : "null");
+        }
+        
+        // Determine timeline-specific timestamp
+        Instant timelineRecordTime = extractedEvent.getTimestamp() != null
+                ? extractedEvent.getTimestamp().atZone(ZoneId.systemDefault()).toInstant()
+                : homeEvent.getEventTime();
         
         // Build TimelineEntry
         TimelineEntry timeline = TimelineEntry.builder()
@@ -177,12 +208,13 @@ public class EventProcessorService {
                 .profileId(originalEvent.getProfileId())
                 .timelineType(timelineType)
                 .dataSource(originalEvent.getSourceType())
-                .recordTime(homeEvent.getEventTime())
-                .title(homeEvent.getTitle())
+                .recordTime(timelineRecordTime)
+                .title(extractedEvent.getSummary())  // Use individual event summary as title
                 .aiSummary(extractedEvent.getSummary())
                 .aiTags(aiTagsJson)
-                .location(homeEvent.getLocation())
+                .location(extractLocationFromEventData(extractedEvent.getEventData()))
                 .aiModelVersion("gemini-2.5-flash") // TODO: Extract from event metadata
+                .originalUserMessage(chatRequest.getUserMessage())
                 .build();
         
         return timelineService.createTimelineEntry(timeline);

@@ -24,6 +24,10 @@ public class ChatEventRequest {
     private Long profileId;
     private String userMessage;
     private String aiMessage;
+    private String intent;  // EVENT_RECORDING, CONVERSATION, QUESTION, MEDICAL_CONCERN
+    private String dataSourceType;  // HOME_EVENT, DAY_CARE_REPORT, INCIDENT_REPORT, HEALTH_REPORT, AI_CHAT
+    private Double confidence;
+    private String intentUnderstanding;
     private List<ExtractedEvent> events;
     
     /**

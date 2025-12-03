@@ -162,6 +162,8 @@ public class EventExtractionService {
         String aiMessage = root.path("ai_message").asText("Got it! I've processed your request.");
         String intentUnderstanding = root.path("intent_understanding").asText("");
         double confidence = root.path("confidence").asDouble(0.8);
+        String intent = root.path("intent").asText("");
+        String dataSourceType = root.path("data_source_type").asText("");
         String aiThinkProcess = root.path("ai_think_process").asText("");
         
         // Parse events
@@ -187,6 +189,8 @@ public class EventExtractionService {
                 .aiMessage(aiMessage)
                 .intentUnderstanding(intentUnderstanding)
                 .confidence(confidence)
+                .intent(intent)
+                .dataSourceType(dataSourceType)
                 .events(events)
                 .clarificationNeeded(clarifications)
                 .aiThinkProcess(aiThinkProcess)
@@ -225,6 +229,11 @@ public class EventExtractionService {
                     eventData.put(key, value.asDouble());
                 } else if (value.isBoolean()) {
                     eventData.put(key, value.asBoolean());
+                } else if (value.isArray()) {
+                    // Handle arrays (e.g., ai_tags)
+                    List<String> arrayValues = new ArrayList<>();
+                    value.forEach(item -> arrayValues.add(item.asText()));
+                    eventData.put(key, arrayValues);
                 } else {
                     eventData.put(key, value.asText());
                 }

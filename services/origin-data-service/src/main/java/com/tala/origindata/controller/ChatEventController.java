@@ -55,10 +55,20 @@ public class ChatEventController {
                 }
             }
             
+            // Determine data source type from AI response, fallback to AI_CHAT
+            DataSourceType dataSourceType = DataSourceType.AI_CHAT;
+            if (request.getDataSourceType() != null && !request.getDataSourceType().isEmpty()) {
+                try {
+                    dataSourceType = DataSourceType.valueOf(request.getDataSourceType());
+                } catch (IllegalArgumentException e) {
+                    log.warn("Invalid data source type: {}, using AI_CHAT", request.getDataSourceType());
+                }
+            }
+            
             // Create original event with attachments (event sourcing)
             OriginalEvent originalEvent = originalEventService.createEvent(
                     request.getProfileId(),
-                    DataSourceType.AI_CHAT,
+                    dataSourceType,
                     null,  // No external source ID for chat
                     eventTime,
                     rawPayload,

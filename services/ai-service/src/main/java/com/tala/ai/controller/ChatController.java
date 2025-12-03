@@ -166,15 +166,21 @@ public class ChatController {
             if (result.eventExtractionResult != null) {
                 EventExtractionResult extraction = result.eventExtractionResult;
                 
+                int eventsCount = extraction.getEvents() != null ? extraction.getEvents().size() : 0;
+                log.info("EventExtraction completed: eventsCount={}, aiMessage={}", 
+                        eventsCount, extraction.getAiMessage());
+                
                 sendEvent(emitter, "extraction", Map.of(
                         "aiMessage", extraction.getAiMessage(),
                         "intentUnderstanding", extraction.getIntentUnderstanding(),
                         "confidence", extraction.getConfidence(),
-                        "eventsCount", extraction.getEvents() != null ? extraction.getEvents().size() : 0
+                        "eventsCount", eventsCount
                 ));
                 
                 // Step 8: Send individual events
                 if (extraction.getEvents() != null && !extraction.getEvents().isEmpty()) {
+                    log.info("Sending {} extracted events to origin-data-service", extraction.getEvents().size());
+                    
                     for (EventExtractionResult.ExtractedEvent event : extraction.getEvents()) {
                         sendEvent(emitter, "event", Map.of(
                                 "eventType", event.getEventType(),
@@ -194,6 +200,8 @@ public class ChatController {
                     
                     try {
                         String originDataResponse = sendToOriginDataService(request, result);
+                        log.info("Successfully sent {} events to origin-data-service: {}", 
+                                extraction.getEvents().size(), originDataResponse);
                         
                         sendEvent(emitter, "storage", Map.of(
                                 "success", true,
@@ -207,6 +215,11 @@ public class ChatController {
                                 "error", e.getMessage()
                         ));
                     }
+                } else {
+                    log.warn("No events extracted from user message. Events list is null or empty. " +
+                            "Classification type: {}", 
+                            result.chatClassificationResult != null ? 
+                                    result.chatClassificationResult.getInteractionType() : "unknown");
                 }
                 
                 // Step 10: Store assistant message in database
@@ -300,6 +313,10 @@ public class ChatController {
         chatEventRequest.put("profileId", request.profileId);
         chatEventRequest.put("userMessage", request.message);
         chatEventRequest.put("aiMessage", extraction.getAiMessage());
+        chatEventRequest.put("intent", extraction.getIntent());
+        chatEventRequest.put("dataSourceType", extraction.getDataSourceType());
+        chatEventRequest.put("confidence", extraction.getConfidence());
+        chatEventRequest.put("intentUnderstanding", extraction.getIntentUnderstanding());
         chatEventRequest.put("attachmentUrls", request.attachmentUrls);
         
         // Convert extracted events

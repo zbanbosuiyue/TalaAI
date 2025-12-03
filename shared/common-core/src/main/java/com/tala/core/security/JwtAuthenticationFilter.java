@@ -52,13 +52,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 // Request came through gateway and was already validated
                 Long userId = Long.parseLong(userIdHeader);
                 setAuthentication(request, userId);
-                filterChain.doFilter(request, response);
-                return;
             }
             
             // Direct request - validate JWT
             if (authHeader == null || !authHeader.startsWith(JwtConstants.BEARER_PREFIX)) {
-                filterChain.doFilter(request, response);
+                // No valid Authorization header; continue without authentication
                 return;
             }
             
@@ -68,7 +66,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 // Verify it's an access token
                 if (!JwtUtils.isAccessToken(token, jwtSecret)) {
                     log.warn("Token is not an access token");
-                    filterChain.doFilter(request, response);
+                    // Continue filter chain without setting authentication
                     return;
                 }
                 

@@ -40,6 +40,16 @@ public class EventExtractionResult {
     private Double confidence;
     
     /**
+     * Intent type: EVENT_RECORDING, CONVERSATION, QUESTION, MEDICAL_CONCERN
+     */
+    private String intent;
+    
+    /**
+     * Data source type: HOME_EVENT, DAY_CARE_REPORT, INCIDENT_REPORT, HEALTH_REPORT, AI_CHAT
+     */
+    private String dataSourceType;
+    
+    /**
      * AI thinking process
      */
     private String aiThinkProcess;

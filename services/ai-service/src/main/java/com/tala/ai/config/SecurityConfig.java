@@ -32,6 +32,9 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/actuator/**").permitAll()
                 .requestMatchers("/error").permitAll()  // Allow error page
+                // Allow SSE chat streaming endpoint without authentication to avoid
+                // AccessDeniedExceptions after the response has been committed
+                .requestMatchers("/api/v1/chat/stream").permitAll()
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)

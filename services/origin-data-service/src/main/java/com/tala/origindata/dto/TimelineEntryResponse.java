@@ -37,6 +37,7 @@ public class TimelineEntryResponse {
     private String aiTags;
     private String location;
     private String aiModelVersion;
+    private String originalUserMessage;
     private List<AttachmentRef> attachments;
     private Instant createdAt;
     private Instant updatedAt;
