@@ -1,5 +1,6 @@
 package com.tala.query.service;
 
+import com.tala.query.client.OriginDataServiceClient;
 import com.tala.query.domain.DailyChildSummary;
 import com.tala.query.dto.DailyContextResponse;
 import com.tala.query.repository.DailyChildSummaryRepository;
@@ -21,6 +22,7 @@ import java.util.stream.Collectors;
 public class DailyAggregationService {
     
     private final DailyChildSummaryRepository repository;
+    private final OriginDataServiceClient originDataServiceClient;
     
     /**
      * Get daily context for AI services
@@ -88,22 +90,82 @@ public class DailyAggregationService {
             return updateExistingSummary(existing.get());
         }
         
-        // Create new summary
+        // Fetch timeline events from origin-data-service
+        List<OriginDataServiceClient.TimelineEntryData> timelineEntries = new ArrayList<>();
+        try {
+            timelineEntries = originDataServiceClient.getTimelineByDateRange(profileId, date);
+            log.info("Fetched {} timeline entries for profile={}, date={}", 
+                timelineEntries.size(), profileId, date);
+        } catch (Exception e) {
+            log.error("Failed to fetch timeline data from origin-data-service for profile={}, date={}", 
+                profileId, date, e);
+            // Continue with empty data rather than failing
+        }
+        
+        // Aggregate data from timeline entries
+        Map<String, Object> eventsSummary = new HashMap<>();
+        Map<String, Object> metrics = new HashMap<>();
+        List<Long> attachmentIds = new ArrayList<>();
+        List<Long> candidateIncidentIds = new ArrayList<>();
+        boolean hasIncident = false;
+        boolean hasSickness = false;
+        
+        // Count events by type
+        Map<String, Integer> eventTypeCounts = new HashMap<>();
+        for (OriginDataServiceClient.TimelineEntryData entry : timelineEntries) {
+            String type = entry.timelineType != null ? entry.timelineType : "UNKNOWN";
+            eventTypeCounts.put(type, eventTypeCounts.getOrDefault(type, 0) + 1);
+            
+            // Check for incidents
+            if ("INCIDENT".equalsIgnoreCase(type) || "INJURY".equalsIgnoreCase(type)) {
+                hasIncident = true;
+                if (entry.id != null) {
+                    candidateIncidentIds.add(entry.id);
+                }
+            }
+            
+            // Check for sickness
+            if ("SICKNESS".equalsIgnoreCase(type) || "MEDICATION".equalsIgnoreCase(type)) {
+                hasSickness = true;
+            }
+            
+            // Extract attachment IDs from attachmentUrls if present
+            if (entry.attachmentUrls != null && !entry.attachmentUrls.isEmpty()) {
+                // Parse attachment URLs to extract IDs
+                // Format might be: "123,456,789" or JSON array
+                try {
+                    String[] parts = entry.attachmentUrls.split(",");
+                    for (String part : parts) {
+                        String trimmed = part.trim();
+                        if (trimmed.matches("\\d+")) {
+                            attachmentIds.add(Long.parseLong(trimmed));
+                        }
+                    }
+                } catch (Exception e) {
+                    log.warn("Failed to parse attachment IDs from: {}", entry.attachmentUrls);
+                }
+            }
+        }
+        
+        eventsSummary.put("eventTypeCounts", eventTypeCounts);
+        eventsSummary.put("totalEntries", timelineEntries.size());
+        
+        // Calculate basic metrics
+        metrics.put("timelineEntriesCount", timelineEntries.size());
+        metrics.put("uniqueEventTypes", eventTypeCounts.size());
+        
+        // Create new summary with aggregated data
         DailyChildSummary summary = DailyChildSummary.builder()
             .profileId(profileId)
             .date(date)
-            .eventsSummary(new HashMap<>())
-            .metrics(new HashMap<>())
-            // Use attachmentIds field defined by AttachmentSupport
-            .attachmentIds(new ArrayList<>())
-            .candidateIncidentIds(new ArrayList<>())
-            .totalEvents(0)
-            .hasIncident(false)
-            .hasSickness(false)
+            .eventsSummary(eventsSummary)
+            .metrics(metrics)
+            .attachmentIds(attachmentIds)
+            .candidateIncidentIds(candidateIncidentIds)
+            .totalEvents(timelineEntries.size())
+            .hasIncident(hasIncident)
+            .hasSickness(hasSickness)
             .build();
-        
-        // TODO: Fetch and aggregate events from origin-data-service timeline
-        // This should call origin-data-service APIs or read from shared database views
         
         return repository.save(summary);
     }

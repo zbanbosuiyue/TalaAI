@@ -157,6 +157,43 @@ cp .env.production.example .env.production
 | **Prometheus** | 9090 | Metrics collection |
 | **Grafana** | 3000 | Metrics visualization |
 
+### Baby Profile & AI Data Architecture
+
+To support AI understanding of each baby, we follow a strict separation of responsibilities:
+
+- **User Service (canonical baby profile)**
+  - Owns all stable and AI-critical baby information.
+  - `profiles` table: core identity fields (userId, babyName, birthDate, timezone, gender, onboarding fields, daycare flags, etc.).
+  - `profile_extended` table: extended, relatively stable metadata that AI should always see, for example:
+    - Preferences (foods, toys, sleep comfort).
+    - Emergency contacts.
+    - Pediatrician and daycare details.
+    - Long-term health flags or allergies that describe "who this baby is" rather than one-off events.
+  - Exposed to clients and AI via:
+    - `/api/v1/profiles/...` (basic profile CRUD).
+    - `/api/v1/profiles/{id}/extended` (full extended profile payload used by mobile app and AI services).
+
+- **Origin Data Service (raw inputs & timeline)**
+  - Stores raw, time-ordered inputs from chat, email, daycare reports, and other sources.
+  - Models events such as home incidents, health reports, daycare reports, and timeline entries.
+  - Optimized for calendar/timeline views and event sourcing, not for holding the canonical baby profile.
+  - This data feeds analytics and personalization but does not redefine the child's core profile.
+
+- **Query Service & Personalization Service (daily context for AI)**
+  - **Query Service** aggregates origin-data events into daily summaries and metrics:
+    - `/api/v1/analytics/daily-context` and related endpoints expose per-profile, per-day context.
+  - **Personalization Service** builds an in-memory `PersonalizationContext` by combining:
+    - Canonical profile and interest profile from user-service.
+    - Daily context and recent trends from query-service.
+    - Reminders, media, daycare reports, weather, and other signals.
+  - This context is used for Today page, insights, and to provide rich input into AI models.
+
+**Design rule for new features:**
+
+- If a field represents long-term identity or metadata that AI should always consider when reasoning about a specific baby, store it in **user-service** (either `profiles` or `profile_extended`).
+- If a field represents an event, measurement, or daily-changing signal ("what happened"), store it as an event in **origin-data-service**, so that **query-service** and **personalization-service** can derive daily context from it.
+- AI-facing services (ai-service, personalization-service) should always treat user-service as the source of truth for "who this baby is" and use origin-data/query-services only for "what has been happening recently".
+
 ## 🔧 Development
 
 ### Project Structure

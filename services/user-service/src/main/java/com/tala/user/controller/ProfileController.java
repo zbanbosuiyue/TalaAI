@@ -3,7 +3,9 @@ package com.tala.user.controller;
 import com.tala.user.dto.ProfileRequest;
 import com.tala.user.dto.ProfileResponse;
 import com.tala.user.dto.ProfileUpdateRequest;
+import com.tala.user.dto.ProfileExtendedData;
 import com.tala.user.service.ProfileService;
+import com.tala.user.service.ProfileExtendedService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +22,7 @@ import java.util.List;
 public class ProfileController {
     
     private final ProfileService profileService;
+    private final ProfileExtendedService profileExtendedService;
     
     @PostMapping
     public ResponseEntity<ProfileResponse> createProfile(
@@ -69,5 +72,22 @@ public class ProfileController {
         log.info("DELETE /api/v1/profiles/{}", id);
         profileService.deleteProfile(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{id}/extended")
+    public ResponseEntity<ProfileExtendedData> getExtendedProfile(@PathVariable Long id) {
+        log.info("GET /api/v1/profiles/{}/extended", id);
+        ProfileExtendedData data = profileExtendedService.getExtendedProfile(id);
+        return ResponseEntity.ok(data);
+    }
+
+    @PutMapping("/{id}/extended")
+    public ResponseEntity<ProfileExtendedData> saveExtendedProfile(
+        @PathVariable Long id,
+        @RequestBody ProfileExtendedData request
+    ) {
+        log.info("PUT /api/v1/profiles/{}/extended", id);
+        ProfileExtendedData data = profileExtendedService.saveExtendedProfile(id, request);
+        return ResponseEntity.ok(data);
     }
 }

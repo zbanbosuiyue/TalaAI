@@ -2,6 +2,7 @@ package com.tala.ai.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tala.ai.client.OriginDataServiceClient;
+import com.tala.ai.client.UserServiceClient;
 import com.tala.core.exception.ErrorCode;
 import com.tala.core.exception.TalaException;
 import com.tala.ai.dto.EventExtractionResult;
@@ -45,6 +46,7 @@ public class ChatController {
     
     private final AIProcessingOrchestrator orchestrator;
     private final OriginDataServiceClient originDataServiceClient;
+    private final UserServiceClient userServiceClient;
     private final Mem0Service mem0Service;
     private final ChatMessageService chatMessageService;
     private final ContextEnrichmentService contextEnrichmentService;
@@ -323,13 +325,88 @@ public class ChatController {
      * Build baby profile context
      */
     private String buildBabyProfileContext(Long profileId) {
-        // TODO: Fetch actual profile data from user-service
-        return String.format("""
-                Baby Profile ID: %d
-                Name: Emma
-                Age: 6 months
-                Birth Date: 2024-06-01
-                """, profileId);
+        try {
+            UserServiceClient.ProfileData profile = userServiceClient.getProfile(profileId);
+            
+            // Calculate age from birth date
+            String ageDescription = calculateAgeDescription(profile.birthDate);
+            
+            StringBuilder context = new StringBuilder();
+            context.append(String.format("Baby Profile ID: %d\n", profile.id));
+            context.append(String.format("Name: %s\n", profile.babyName));
+            context.append(String.format("Age: %s\n", ageDescription));
+            context.append(String.format("Birth Date: %s\n", profile.birthDate));
+            
+            if (profile.gender != null && !profile.gender.isEmpty()) {
+                context.append(String.format("Gender: %s\n", profile.gender));
+            }
+            
+            if (profile.parentName != null && !profile.parentName.isEmpty()) {
+                context.append(String.format("Parent: %s", profile.parentName));
+                if (profile.parentRole != null && !profile.parentRole.isEmpty()) {
+                    context.append(String.format(" (%s)", profile.parentRole));
+                }
+                context.append("\n");
+            }
+            
+            if (profile.hasDaycare != null && profile.hasDaycare && profile.daycareName != null) {
+                context.append(String.format("Daycare: %s\n", profile.daycareName));
+            }
+            
+            if (profile.concerns != null && !profile.concerns.isEmpty()) {
+                context.append(String.format("Parent Concerns: %s\n", profile.concerns));
+            }
+            
+            return context.toString();
+        } catch (Exception e) {
+            log.warn("Failed to fetch profile data from user-service for profileId: {}, using fallback", profileId, e);
+            // Fallback to basic context
+            return String.format("""
+                    Baby Profile ID: %d
+                    (Profile data temporarily unavailable)
+                    """, profileId);
+        }
+    }
+    
+    /**
+     * Calculate age description from birth date
+     */
+    private String calculateAgeDescription(java.time.LocalDate birthDate) {
+        if (birthDate == null) {
+            return "Unknown";
+        }
+        
+        java.time.LocalDate now = java.time.LocalDate.now();
+        java.time.Period period = java.time.Period.between(birthDate, now);
+        
+        int years = period.getYears();
+        int months = period.getMonths();
+        int days = period.getDays();
+        
+        if (years > 0) {
+            if (months > 0) {
+                return String.format("%d year%s %d month%s", 
+                    years, years > 1 ? "s" : "", 
+                    months, months > 1 ? "s" : "");
+            }
+            return String.format("%d year%s", years, years > 1 ? "s" : "");
+        } else if (months > 0) {
+            if (days > 7) {
+                int weeks = days / 7;
+                return String.format("%d month%s %d week%s", 
+                    months, months > 1 ? "s" : "",
+                    weeks, weeks > 1 ? "s" : "");
+            }
+            return String.format("%d month%s", months, months > 1 ? "s" : "");
+        } else if (days > 0) {
+            if (days >= 7) {
+                int weeks = days / 7;
+                return String.format("%d week%s", weeks, weeks > 1 ? "s" : "");
+            }
+            return String.format("%d day%s", days, days > 1 ? "s" : "");
+        }
+        
+        return "Newborn";
     }
     
     /**
