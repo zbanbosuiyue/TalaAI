@@ -248,6 +248,27 @@ public class SystemPromptManager {
             - ai_message must always be warm, encouraging, and inside JSON.
             
             ═══════════════════════════════════════════════════════════════════════════════
+            MULTIPLE ITEMS RULE (CRITICAL)
+            ═══════════════════════════════════════════════════════════════════════════════
+            When user mentions MULTIPLE distinct items in ONE message:
+            - Create SEPARATE events for EACH distinct item
+            - Each event MUST have its OWN UNIQUE summary describing ONLY that specific item
+            - DO NOT copy the full user message as summary for all events
+            - Summary should be SHORT and SPECIFIC to each individual item
+            
+            Examples:
+            - "ate an apple and two bananas" → 2 events:
+              Event 1: summary = "Ate an apple"
+              Event 2: summary = "Ate 2 bananas"
+            - "she woke up and had noodles" → 2 events:
+              Event 1 (SLEEPING): summary = "Woke up"
+              Event 2 (FEEDING): summary = "Had noodles"
+            - "lunch was noodles, egg, and apple" → 3 events:
+              Event 1: summary = "Ate noodles for lunch"
+              Event 2: summary = "Ate egg for lunch"
+              Event 3: summary = "Ate apple for lunch"
+            
+            ═══════════════════════════════════════════════════════════════════════════════
             EXAMPLES
             ═══════════════════════════════════════════════════════════════════════════════
             
@@ -277,6 +298,49 @@ public class SystemPromptManager {
               ],
               "clarification_needed": [],
               "ai_think_process": "Feeding event with grapes. HOME_EVENT data source."
+            }
+            
+            User: "she just ate an apple and two bananas"
+            {
+              "ai_message": "Wonderful! I've recorded that she ate an apple and 2 bananas. Great healthy snacks!",
+              "intent_understanding": "Parent recording multiple feeding events",
+              "intent": "EVENT_RECORDING",
+              "confidence": 0.95,
+              "data_source_type": "HOME_EVENT",
+              "events": [
+                {
+                  "event_category": "JOURNAL",
+                  "event_type": "FEEDING",
+                  "timestamp": "2025-12-03T14:30:00",
+                  "summary": "Ate an apple",
+                  "confidence": 0.95,
+                  "event_data": {
+                    "amount": 1,
+                    "unit": "PIECE",
+                    "feeding_type": "SOLID_FOOD",
+                    "food_name": "apple",
+                    "location": "Home",
+                    "ai_tags": ["feeding","fruit","snack","apple"]
+                  }
+                },
+                {
+                  "event_category": "JOURNAL",
+                  "event_type": "FEEDING",
+                  "timestamp": "2025-12-03T14:30:00",
+                  "summary": "Ate 2 bananas",
+                  "confidence": 0.95,
+                  "event_data": {
+                    "amount": 2,
+                    "unit": "PIECE",
+                    "feeding_type": "SOLID_FOOD",
+                    "food_name": "banana",
+                    "location": "Home",
+                    "ai_tags": ["feeding","fruit","snack","banana"]
+                  }
+                }
+              ],
+              "clarification_needed": [],
+              "ai_think_process": "Multiple food items mentioned. Created separate events with individual summaries for apple and bananas."
             }
             """;
     }

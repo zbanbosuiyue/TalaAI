@@ -60,6 +60,7 @@ public class ProfileExtendedService {
         map.put("daycare", data.getDaycare());
 
         entity = profileExtendedRepository.save(entity);
+        log.info("Saved extended profile for profileId: {}, data keys: {}", profileId, map.keySet());
         return toDto(entity);
     }
 
