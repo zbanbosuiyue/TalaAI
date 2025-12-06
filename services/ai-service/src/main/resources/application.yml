@@ -97,6 +97,8 @@ services:
     url: ${ORIGIN_DATA_SERVICE_URL:http://localhost:8089}
   user-service:
     url: ${USER_SERVICE_URL:http://localhost:8081}
+  file-service:
+    url: ${FILE_SERVICE_URL:http://localhost:8088}
 
 logging:
   level:

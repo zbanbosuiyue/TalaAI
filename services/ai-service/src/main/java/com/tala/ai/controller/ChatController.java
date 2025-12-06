@@ -1,6 +1,7 @@
 package com.tala.ai.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.tala.ai.client.FileServiceClient;
 import com.tala.ai.client.OriginDataServiceFeignClient;
 import com.tala.ai.client.UserServiceFeignClient;
 import com.tala.core.exception.ErrorCode;
@@ -48,6 +49,7 @@ public class ChatController {
     private final AIProcessingOrchestrator orchestrator;
     private final OriginDataServiceFeignClient originDataServiceFeignClient;
     private final UserServiceFeignClient userServiceFeignClient;
+    private final FileServiceClient fileServiceClient;
     private final Mem0Service mem0Service;
     private final ChatMessageService chatMessageService;
     private final ContextEnrichmentService contextEnrichmentService;
@@ -103,6 +105,14 @@ public class ChatController {
      */
     private void processChatWithStreaming(ChatRequest request, SseEmitter emitter) {
         try {
+            // Step 0: Resolve attachmentIds to URLs (single source of truth)
+            List<String> attachmentUrls = request.attachmentUrls; // Legacy support
+            if (request.attachmentIds != null && !request.attachmentIds.isEmpty()) {
+                log.info("Resolving {} attachment IDs to URLs", request.attachmentIds.size());
+                attachmentUrls = resolveFileUrls(request.attachmentIds);
+                log.info("Resolved to {} URLs", attachmentUrls.size());
+            }
+            
             // Step 1: Send initial thinking event
             sendEvent(emitter, "thinking", Map.of(
                     "stage", "initialization",
@@ -143,7 +153,7 @@ public class ChatController {
             
             AIProcessingOrchestrator.ProcessingRequest orchRequest = new AIProcessingOrchestrator.ProcessingRequest();
             orchRequest.userMessage = enrichedMessage; // Use enriched message with history
-            orchRequest.attachmentUrls = request.attachmentUrls;
+            orchRequest.attachmentUrls = attachmentUrls; // Resolved from attachmentIds
             orchRequest.babyProfileContext = babyProfileContext;
             orchRequest.chatHistory = null; // History already included in enrichedMessage
             orchRequest.userLocalTime = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
@@ -611,6 +621,34 @@ public class ChatController {
     }
     
     /**
+     * Resolve file IDs to public URLs using file-service
+     * File IDs are received as strings from frontend (64-bit Long serialization)
+     */
+    private List<String> resolveFileUrls(List<String> fileIdStrings) {
+        if (fileIdStrings == null || fileIdStrings.isEmpty()) {
+            return List.of();
+        }
+        
+        List<String> urls = new java.util.ArrayList<>();
+        for (String fileIdStr : fileIdStrings) {
+            try {
+                Long fileId = Long.parseLong(fileIdStr);
+                FileServiceClient.FileMetadataResponse metadata = fileServiceClient.getFileMetadata(fileId);
+                if (metadata != null && metadata.publicUrl != null) {
+                    urls.add(metadata.publicUrl);
+                } else {
+                    log.warn("Could not resolve URL for fileId={}", fileId);
+                }
+            } catch (NumberFormatException e) {
+                log.error("Invalid file ID format: {}", fileIdStr, e);
+            } catch (Exception e) {
+                log.error("Failed to get file metadata for fileId={}", fileIdStr, e);
+            }
+        }
+        return urls;
+    }
+    
+    /**
      * Health check
      */
     @GetMapping("/health")
@@ -626,7 +664,10 @@ public class ChatController {
         private Long profileId;
         private Long userId;
         private String message;
-        private List<String> attachmentUrls;
+        private List<String> attachmentIds;  // File IDs as strings (64-bit Long serialized)
+        
+        @Deprecated
+        private List<String> attachmentUrls;  // Legacy support, will be removed
     }
     
     /**

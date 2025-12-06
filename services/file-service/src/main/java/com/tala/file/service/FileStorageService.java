@@ -172,7 +172,9 @@ public class FileStorageService {
     }
     
     private String generateStorageKey(Long userId, String extension) {
-        return String.format("users/%d/%s.%s", userId, UUID.randomUUID(), extension);
+        // Industry best practice: Use UUID-only for storage key
+        // This prevents exposing user information in URLs and simplifies access control
+        return String.format("%s_%s.%s", UUID.randomUUID(), System.currentTimeMillis(), extension);
     }
     
     private String determineFileType(String mimeType) {
