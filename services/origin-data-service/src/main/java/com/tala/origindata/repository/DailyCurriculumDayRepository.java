@@ -20,7 +20,7 @@ public interface DailyCurriculumDayRepository extends JpaRepository<DailyCurricu
     List<DailyCurriculumDay> findBySchoolIdAndClassroomIdAndDateBetweenOrderByDateDesc(
         Long schoolId, Long classroomId, LocalDate startDate, LocalDate endDate);
     
-    Optional<DailyCurriculumDay> findByOriginEventId(Long originEventId);
+    Optional<DailyCurriculumDay> findByOriginDataId(Long originDataId);
     
     Optional<DailyCurriculumDay> findBySchoolIdAndClassroomIdAndDate(
         Long schoolId, Long classroomId, LocalDate date);

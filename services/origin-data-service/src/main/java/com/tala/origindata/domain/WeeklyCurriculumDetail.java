@@ -42,8 +42,8 @@ public class WeeklyCurriculumDetail extends BaseEntity {
     @Column(name = "scope", nullable = false, length = 20)
     private CurriculumScope scope;
     
-    @Column(name = "day_of_week")
-    private Integer dayOfWeek;
+    @Column(name = "day_of_week", columnDefinition = "SMALLINT")
+    private Short dayOfWeek;
     
     @Enumerated(EnumType.STRING)
     @Column(name = "item_type", nullable = false, length = 50)

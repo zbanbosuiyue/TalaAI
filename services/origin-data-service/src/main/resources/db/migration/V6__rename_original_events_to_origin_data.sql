@@ -24,8 +24,15 @@ CREATE INDEX idx_origin_data_time ON origin_data.origin_data(data_time);
 CREATE INDEX idx_origin_data_ai_processed ON origin_data.origin_data(ai_processed);
 CREATE UNIQUE INDEX idx_origin_data_source_unique ON origin_data.origin_data(source_type, source_data_id) WHERE source_data_id IS NOT NULL;
 
--- Step 5: Update foreign key references in child tables
--- Note: Foreign keys will be automatically updated by PostgreSQL when table is renamed
+-- Step 5: Update foreign key references in curriculum tables
+ALTER TABLE origin_data.weekly_curriculum_header RENAME COLUMN origin_event_id TO origin_data_id;
+ALTER TABLE origin_data.daily_curriculum_day RENAME COLUMN origin_event_id TO origin_data_id;
+
+-- Update curriculum table indexes
+DROP INDEX IF EXISTS origin_data.idx_weekly_curriculum_origin_event;
+DROP INDEX IF EXISTS origin_data.idx_daily_curriculum_origin_event;
+CREATE INDEX idx_weekly_curriculum_origin_data ON origin_data.weekly_curriculum_header(origin_data_id);
+CREATE INDEX idx_daily_curriculum_origin_data ON origin_data.daily_curriculum_day(origin_data_id);
 
 -- Step 6: Update comments
 COMMENT ON TABLE origin_data.origin_data IS 'Top-level data sourcing table for all external data (events and documents)';

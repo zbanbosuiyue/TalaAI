@@ -8,7 +8,7 @@ CREATE TABLE origin_data.weekly_curriculum_header (
     id BIGINT PRIMARY KEY,
     school_id BIGINT NOT NULL,
     classroom_id BIGINT NOT NULL,
-    origin_data_id BIGINT REFERENCES origin_data.origin_data(id),
+    origin_event_id BIGINT REFERENCES origin_data.original_events(id),
     week_start_date DATE NOT NULL,
     week_end_date DATE NOT NULL,
     title TEXT,
@@ -21,7 +21,7 @@ CREATE TABLE origin_data.weekly_curriculum_header (
     deleted_at TIMESTAMP WITH TIME ZONE
 );
 
-CREATE INDEX idx_weekly_curriculum_origin_data ON origin_data.weekly_curriculum_header(origin_data_id);
+CREATE INDEX idx_weekly_curriculum_origin_event ON origin_data.weekly_curriculum_header(origin_event_id);
 CREATE INDEX idx_weekly_curriculum_school_classroom ON origin_data.weekly_curriculum_header(school_id, classroom_id);
 CREATE INDEX idx_weekly_curriculum_week_dates ON origin_data.weekly_curriculum_header(week_start_date, week_end_date);
 
@@ -67,7 +67,7 @@ CREATE TABLE origin_data.daily_curriculum_day (
     id BIGINT PRIMARY KEY,
     school_id BIGINT NOT NULL,
     classroom_id BIGINT NOT NULL,
-    origin_data_id BIGINT REFERENCES origin_data.origin_data(id),
+    origin_event_id BIGINT REFERENCES origin_data.original_events(id),
     date DATE NOT NULL,
     week_header_id BIGINT REFERENCES origin_data.weekly_curriculum_header(id),
     note TEXT,
@@ -76,7 +76,7 @@ CREATE TABLE origin_data.daily_curriculum_day (
     deleted_at TIMESTAMP WITH TIME ZONE
 );
 
-CREATE INDEX idx_daily_curriculum_origin_data ON origin_data.daily_curriculum_day(origin_data_id);
+CREATE INDEX idx_daily_curriculum_origin_event ON origin_data.daily_curriculum_day(origin_event_id);
 CREATE INDEX idx_daily_curriculum_school_classroom ON origin_data.daily_curriculum_day(school_id, classroom_id);
 CREATE INDEX idx_daily_curriculum_date ON origin_data.daily_curriculum_day(date);
 CREATE INDEX idx_daily_curriculum_week_header ON origin_data.daily_curriculum_day(week_header_id);

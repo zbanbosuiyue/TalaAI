@@ -20,7 +20,7 @@ public interface WeeklyCurriculumHeaderRepository extends JpaRepository<WeeklyCu
     List<WeeklyCurriculumHeader> findBySchoolIdAndClassroomIdAndWeekStartDateBetweenOrderByWeekStartDateDesc(
         Long schoolId, Long classroomId, LocalDate startDate, LocalDate endDate);
     
-    Optional<WeeklyCurriculumHeader> findByOriginEventId(Long originEventId);
+    Optional<WeeklyCurriculumHeader> findByOriginDataId(Long originDataId);
     
     Optional<WeeklyCurriculumHeader> findBySchoolIdAndClassroomIdAndWeekStartDate(
         Long schoolId, Long classroomId, LocalDate weekStartDate);
