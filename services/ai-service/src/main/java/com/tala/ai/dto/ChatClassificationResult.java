@@ -55,6 +55,11 @@ public class ChatClassificationResult {
         DATA_RECORDING,
         
         /**
+         * User is uploading curriculum documents
+         */
+        CURRICULUM_UPLOAD,
+        
+        /**
          * User is asking questions or seeking advice
          */
         QUESTION_ANSWERING,

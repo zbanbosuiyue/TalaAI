@@ -40,6 +40,7 @@ public class SystemPromptManager {
     public static final String EVENT_EXTRACTION_PROMPT = "event-extraction-v1";
     public static final String CHAT_CLASSIFIER_PROMPT = "chat-classifier-v1";
     public static final String ATTACHMENT_PARSER_PROMPT = "attachment-parser-v1";
+    public static final String CURRICULUM_EXTRACTION_PROMPT = "curriculum-extraction-v1";
     
     /**
      * Get or create cached content for event extraction
@@ -63,6 +64,14 @@ public class SystemPromptManager {
      */
     public String getAttachmentParserCache() {
         return getOrCreateCache(ATTACHMENT_PARSER_PROMPT, buildAttachmentParserSystemPrompt());
+    }
+    
+    /**
+     * Get or create cached content for curriculum extraction
+     * Returns null if caching is not available (caller should fallback to non-cached mode)
+     */
+    public String getCurriculumExtractionCache() {
+        return getOrCreateCache(CURRICULUM_EXTRACTION_PROMPT, buildCurriculumExtractionSystemPrompt());
     }
     
     /**
@@ -137,6 +146,13 @@ public class SystemPromptManager {
     }
     
     /**
+     * Get system prompt for curriculum extraction (for non-cached fallback)
+     */
+    public String getCurriculumExtractionSystemPrompt() {
+        return buildCurriculumExtractionSystemPrompt();
+    }
+    
+    /**
      * Build static system prompt for Event Extraction
      * This is the STATIC part that gets cached
      * 
@@ -173,14 +189,30 @@ public class SystemPromptManager {
             For HOME_EVENT | DAY_CARE_REPORT | INCIDENT_REPORT | HEALTH_REPORT:
             Keep user's original message as reference in your response.
             
+            SPECIAL RULES FOR REPORT-TYPE DATA SOURCES:
+            - For DAY_CARE_REPORT, INCIDENT_REPORT, and HEALTH_REPORT, in addition to
+              individual events (meals, diapers, naps, incidents, visits, etc.), you MUST
+              also create ONE extra summary event for the report itself:
+              • event_category = REPORT
+              • event_type =
+                  DAYCARE_REPORT when data_source_type = DAY_CARE_REPORT
+                  INCIDENT_REPORT when data_source_type = INCIDENT_REPORT
+                  HEALTH_REPORT when data_source_type = HEALTH_REPORT
+              • summary = a short summary synthesized from the main note or overall
+                report text (for example teacher note, incident description, or
+                clinician/health note), not just a copy of one row.
+            - This report-level event should reference the same date as the report
+              document and act as the parent summary for that day.
+            
             ═══════════════════════════════════════════════════════════════════════════════
             EVENT RULES
             ═══════════════════════════════════════════════════════════════════════════════
             Every event requires:
-            - event_category = JOURNAL | HEALTH
+            - event_category = JOURNAL | HEALTH | REPORT
             - event_type (uppercase):
               JOURNAL → FEEDING, DIAPER, SLEEPING, ACTIVITY, MILESTONE, EMOTION, BEHAVIOR, REMINDER, NOTES
               HEALTH → HEALTH, SICKNESS, MEDICINE, MEDICAL_VISIT, VACCINATION, GROWTH_MEASUREMENT
+              REPORT → DAYCARE_REPORT, INCIDENT_REPORT, HEALTH_REPORT
             - timestamp (ISO8601, with seconds)
             - summary
             - confidence
@@ -206,6 +238,14 @@ public class SystemPromptManager {
               "30 mins ago" → subtract 30 minutes
               "this morning 8am" → today + 08:00
             If date only: use T00:00:00.
+            
+            Special timestamp handling for REPORT summary events created from
+            DAY_CARE_REPORT, INCIDENT_REPORT, or HEALTH_REPORT:
+            - Let report_date be the calendar date of the report document.
+            - Let current_date be the calendar date of CURRENT_SYSTEM_TIME.
+            - If current_date == report_date → use CURRENT_SYSTEM_TIME as the timestamp.
+            - Otherwise → use report_date at 23:59:00 (end of that day) as the timestamp.
+            
             Format: ISO8601 with seconds (YYYY-MM-DDTHH:mm:ss)
             
             ═══════════════════════════════════════════════════════════════════════════════
@@ -220,8 +260,8 @@ public class SystemPromptManager {
               "data_source_type": "HOME_EVENT|DAY_CARE_REPORT|INCIDENT_REPORT|HEALTH_REPORT|AI_CHAT",
               "events": [
                 {
-                  "event_category": "JOURNAL|HEALTH",
-                  "event_type": "FEEDING|DIAPER|SLEEPING|MILESTONE|ACTIVITY|EMOTION|BEHAVIOR|HEALTH|REMINDER|CONCERN|NOTES",
+                  "event_category": "JOURNAL|HEALTH|REPORT",
+                  "event_type": "FEEDING|DIAPER|SLEEPING|MILESTONE|ACTIVITY|EMOTION|BEHAVIOR|INCIDENT|HEALTH|REMINDER|CONCERN|DAYCARE_REPORT|INCIDENT_REPORT|HEALTH_REPORT",
                   "timestamp": "2025-12-02T14:30:00",
                   "summary": "Brief summary of this event",
                   "confidence": 0.0-1.0,
@@ -250,23 +290,54 @@ public class SystemPromptManager {
             ═══════════════════════════════════════════════════════════════════════════════
             MULTIPLE ITEMS RULE (CRITICAL)
             ═══════════════════════════════════════════════════════════════════════════════
-            When user mentions MULTIPLE distinct items in ONE message:
-            - Create SEPARATE events for EACH distinct item
-            - Each event MUST have its OWN UNIQUE summary describing ONLY that specific item
-            - DO NOT copy the full user message as summary for all events
-            - Summary should be SHORT and SPECIFIC to each individual item
+            Many real messages and reports contain MULTIPLE items (foods, diapers, naps, notes).
+            Your job is to intelligently decide when to GROUP items into one event vs SPLIT into
+            several events so that the timeline is clear, not noisy.
             
-            Examples:
-            - "ate an apple and two bananas" → 2 events:
-              Event 1: summary = "Ate an apple"
-              Event 2: summary = "Ate 2 bananas"
-            - "she woke up and had noodles" → 2 events:
-              Event 1 (SLEEPING): summary = "Woke up"
-              Event 2 (FEEDING): summary = "Had noodles"
-            - "lunch was noodles, egg, and apple" → 3 events:
-              Event 1: summary = "Ate noodles for lunch"
-              Event 2: summary = "Ate egg for lunch"
-              Event 3: summary = "Ate apple for lunch"
+            1) Identify logical "primary events"
+               - For structured reports (tables, daycare sheets, bullet lists):
+                 • Treat each ROW or main BULLET as a primary event candidate.
+               - For free-form chat: 
+                 • Treat each clear clause with its own action + time context as a candidate.
+            
+            2) When items should be GROUPED into ONE event
+               - Same event_category + same event_type
+               - Same time window (same timestamp, or clearly the same moment/period)
+               - Belong to one real-world occurrence
+               Examples of grouping:
+               - One meal/snack that lists multiple foods/drinks around the same time
+                 → create ONE FEEDING event, not one event per food.
+               - One diaper change that includes extra detail (e.g., "Wet diaper, mild rash, ointment applied")
+                 → create ONE DIAPER event with extra details in event_data.
+               - One nap block with start/end times and notes
+                 → ONE SLEEPING event.
+            
+               For grouped FEEDING events:
+               - Use a short summary that covers the whole meal/snack (e.g., "AM snack with fruit, crackers, and water").
+               - Put details in event_data, for example:
+                 • feeding_type (e.g., SOLID_FOOD, MILK, MIXED)
+                 • meal_label: "breakfast" | "lunch" | "dinner" | "snack" | "unknown"
+                 • meal_items: [{ food_name, amount, unit }] when multiple foods are listed.
+            
+            3) When items should be SPLIT into SEPARATE events
+               - Different event_type: 
+                 • e.g., one message/report line clearly includes BOTH a meal AND a nap
+                   → create one FEEDING event and one SLEEPING event.
+               - Clearly different times:
+                 • e.g., separate rows or clauses like "9:30 snack" and "11:45 lunch".
+                 • e.g., "In the morning she had cereal, later in the afternoon she had yogurt".
+               - Separate incidents or health events that must be distinguishable on the timeline.
+            
+            4) Summaries for multiple items
+               - Each event MUST have a concise summary describing ONLY that event.
+               - Do NOT copy the entire original paragraph or message for every event.
+               - For grouped meals, summary should mention the meal and main items together
+                 (details live in event_data.meal_items).
+               - For split events, each event's summary should clearly differentiate time and type.
+            
+            5) Avoid duplicates
+               - Do NOT create multiple events that describe the exact same occurrence with different wording.
+               - Prefer fewer, well-structured events over many tiny, redundant ones.
             
             ═══════════════════════════════════════════════════════════════════════════════
             EXAMPLES
@@ -300,48 +371,6 @@ public class SystemPromptManager {
               "ai_think_process": "Feeding event with grapes. HOME_EVENT data source."
             }
             
-            User: "she just ate an apple and two bananas"
-            {
-              "ai_message": "Wonderful! I've recorded that she ate an apple and 2 bananas. Great healthy snacks!",
-              "intent_understanding": "Parent recording multiple feeding events",
-              "intent": "EVENT_RECORDING",
-              "confidence": 0.95,
-              "data_source_type": "HOME_EVENT",
-              "events": [
-                {
-                  "event_category": "JOURNAL",
-                  "event_type": "FEEDING",
-                  "timestamp": "2025-12-03T14:30:00",
-                  "summary": "Ate an apple",
-                  "confidence": 0.95,
-                  "event_data": {
-                    "amount": 1,
-                    "unit": "PIECE",
-                    "feeding_type": "SOLID_FOOD",
-                    "food_name": "apple",
-                    "location": "Home",
-                    "ai_tags": ["feeding","fruit","snack","apple"]
-                  }
-                },
-                {
-                  "event_category": "JOURNAL",
-                  "event_type": "FEEDING",
-                  "timestamp": "2025-12-03T14:30:00",
-                  "summary": "Ate 2 bananas",
-                  "confidence": 0.95,
-                  "event_data": {
-                    "amount": 2,
-                    "unit": "PIECE",
-                    "feeding_type": "SOLID_FOOD",
-                    "food_name": "banana",
-                    "location": "Home",
-                    "ai_tags": ["feeding","fruit","snack","banana"]
-                  }
-                }
-              ],
-              "clarification_needed": [],
-              "ai_think_process": "Multiple food items mentioned. Created separate events with individual summaries for apple and bananas."
-            }
             """;
     }
     
@@ -361,29 +390,37 @@ public class SystemPromptManager {
                - Short factual answers to clarification questions about events
                - Examples: "Baby drank 120ml", "She slept from 2pm to 4pm", "Changed diaper at 3pm"
             
-            2) QUESTION_ANSWERING
+            2) CURRICULUM_UPLOAD
+               - User is uploading curriculum documents (weekly newsletters, daily activity plans)
+               - Attachments contain structured curriculum information from daycare/preschool
+               - Examples: Attachments with weekly themes, daily activity schedules, learning objectives
+               - IMPORTANT: If attachment_type is DAYCARE_REPORT with curriculum-like content, classify as CURRICULUM_UPLOAD
+            
+            3) QUESTION_ANSWERING
                - User is asking for information, advice, or analysis
                - Questions about baby's data, patterns, or parenting advice
                - Examples: "How much did baby eat today?", "Is the sleep pattern normal?", "What should I do about teething?"
             
-            3) GENERAL_CHAT
+            4) GENERAL_CHAT
                - Casual conversation, greetings, or emotional support
                - Examples: "Hello", "Thank you", "I'm feeling overwhelmed"
             
-            4) OUT_OF_SCOPE
+            5) OUT_OF_SCOPE
                - Topics unrelated to baby care or parenting
                - Examples: "What's the weather?", "Tell me a joke"
             
             KEY RULES:
             - "Baby drank 200ml" (statement) → DATA_RECORDING
             - "How much did baby drink?" (question) → QUESTION_ANSWERING
-            - If user has attachments (daycare report, medical record), likely DATA_RECORDING
+            - Attachments with weekly curriculum, daily activity plans → CURRICULUM_UPLOAD
+            - Attachments with curriculum-like structure (themes, letters, activities by domain) → CURRICULUM_UPLOAD
+            - If user has attachments (daycare report, medical record) without curriculum structure → DATA_RECORDING
             - Messages ending with "?" are usually QUESTION_ANSWERING unless they're meta-commands
             
             OUTPUT (JSON ONLY):
             Return exactly ONE JSON object. No extra text.
             {
-              "interaction_type": "DATA_RECORDING|QUESTION_ANSWERING|GENERAL_CHAT|OUT_OF_SCOPE",
+              "interaction_type": "DATA_RECORDING|CURRICULUM_UPLOAD|QUESTION_ANSWERING|GENERAL_CHAT|OUT_OF_SCOPE",
               "reason": "short explanation based on meaning and context",
               "confidence": 0.0-1.0,
               "ai_think_process": "your reasoning"
@@ -436,6 +473,143 @@ public class SystemPromptManager {
             - For daycare reports: extract meals, naps, diaper changes, activities
             - For medical records: extract diagnosis, medications, measurements
             - Be thorough and accurate
+            """;
+    }
+    
+    /**
+     * Build static system prompt for Curriculum Extraction
+     * This is the STATIC part that gets cached
+     */
+    private String buildCurriculumExtractionSystemPrompt() {
+        return """
+            You are a curriculum document analyzer for a baby tracking application.
+            Your task is to extract structured curriculum information from daycare/preschool documents.
+            
+            CURRICULUM TYPES:
+            
+            1) WEEKLY_CURRICULUM
+               - Weekly newsletters, themes, learning objectives
+               - Contains: theme, letters, numbers, colors, shapes, patterns, events, reminders
+               - Time scope: One week (week_start_date to week_end_date)
+            
+            2) DAILY_CURRICULUM
+               - Daily activity plans by learning domain
+               - Contains: activities organized by COGNITIVE, LANGUAGE, SOCIAL_EMOTIONAL, PHYSICAL, ART, MATH
+               - Time scope: Single day
+            
+            EXTRACTION RULES:
+            
+            For WEEKLY_CURRICULUM, extract:
+            - curriculum_type: "WEEKLY"
+            - week_start_date: ISO date (YYYY-MM-DD)
+            - week_end_date: ISO date (YYYY-MM-DD)
+            - title: Newsletter title
+            - theme: Main theme of the week
+            - age_group: Target age group
+            - summary_text: Brief summary
+            - metadata: Object containing:
+              • letters: Array of letters being taught
+              • numbers: Array or range of numbers
+              • colors: Array of colors
+              • shapes: Array of shapes
+              • patterns: Array of patterns
+              • events: Array of {date, time, title, description}
+              • reminders: Array of reminder texts
+              • teacher_schedule: Object with teacher names and times
+              • news: Array of news items
+            - details: Array of curriculum items, each with:
+              • scope: "WEEK" or "DAY"
+              • day_of_week: 1-7 (Monday-Sunday), null if scope=WEEK
+              • item_type: THEME|TOPIC|SKILL|SUBJECT|EVENT|REMINDER|OTHER
+              • learning_domain: COGNITIVE|LANGUAGE|SOCIAL_EMOTIONAL|PHYSICAL|ART|MATH|OTHER (optional)
+              • label: Short label
+              • value: Value or description
+              • start_at: ISO timestamp for events (optional)
+              • end_at: ISO timestamp for events (optional)
+              • display_order: Integer for sorting
+            
+            For DAILY_CURRICULUM, extract:
+            - curriculum_type: "DAILY"
+            - date: ISO date (YYYY-MM-DD)
+            - note: General note for the day
+            - activities: Array of activities, each with:
+              • domain: COGNITIVE|LANGUAGE|SOCIAL_EMOTIONAL|PHYSICAL|ART|MATH|OTHER
+              • activity: Activity name
+              • objective: Learning objective
+              • display_order: Integer for sorting
+            
+            OUTPUT (JSON ONLY):
+            {
+              "curriculum_type": "WEEKLY|DAILY",
+              "confidence": 0.0-1.0,
+              "school_id": null,
+              "classroom_id": null,
+              "data_source_type": "WEEKLY_CURRICULUM|DAILY_CURRICULUM",
+              
+              // For WEEKLY_CURRICULUM:
+              "week_start_date": "2024-12-01",
+              "week_end_date": "2024-12-06",
+              "title": "Pooh Bear Class - December",
+              "theme": "Sharing and Giving",
+              "age_group": "Toddler",
+              "summary_text": "This week we focus on...",
+              "metadata": {
+                "letters": ["N", "n"],
+                "numbers": ["1", "2", "3", "4", "5"],
+                "colors": ["Purple"],
+                "shapes": ["Circle"],
+                "patterns": ["AABB"],
+                "events": [
+                  {
+                    "date": "2024-12-04",
+                    "time": "15:30-16:45",
+                    "title": "Holiday Celebration",
+                    "description": "Infant/Toddler Holiday Celebration"
+                  }
+                ],
+                "reminders": ["Welcome Julia Hesler and Cameron Phillips"],
+                "teacher_schedule": {
+                  "Ms. Jessica": "7:15-4:15",
+                  "Ms. Kaylee": "8:30-5:30",
+                  "Ms. Sarah": "9:00-6:00"
+                },
+                "news": []
+              },
+              "details": [
+                {
+                  "scope": "WEEK",
+                  "day_of_week": null,
+                  "item_type": "THEME",
+                  "learning_domain": null,
+                  "label": "Letters",
+                  "value": "Nn",
+                  "display_order": 1
+                }
+              ],
+              
+              // For DAILY_CURRICULUM:
+              "date": "2024-12-01",
+              "note": "Week Of: December 1st - 5th",
+              "activities": [
+                {
+                  "domain": "COGNITIVE",
+                  "activity": "Fly Swatter Painting",
+                  "objective": "Promote small motor development",
+                  "display_order": 1
+                }
+              ],
+              
+              "ai_think_process": "Your reasoning"
+            }
+            
+            IMPORTANT:
+            - Extract ALL visible information from the curriculum document
+            - Identify dates, times, teacher names, activities
+            - For weekly curriculum: organize by week-level and day-level items
+            - For daily curriculum: organize by learning domain
+            - Be thorough and accurate
+            - All dates must be in ISO format (YYYY-MM-DD)
+            - All timestamps must be in ISO format (YYYY-MM-DDTHH:mm:ss)
             """;
     }
 }

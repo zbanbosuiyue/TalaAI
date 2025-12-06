@@ -1,0 +1,31 @@
+origin_data -> Home Event			-> List<TimelineEntry> subEvents, TimelineEntry originEvent+AttachmentId -> 
+				Daily Report		-> 
+				Health Report
+				CHAT
+
+				08:00 DropOffIcon
+				XXXXX DailyCurriculumIcon: Title: Today's Curriculum. Detail: CurriculumContent
+
+
+				12:00 FeedingIcon: Title: Lunch. Detail: Apple, Milk, ...
+
+				13:00 SleepingIcon(start): Title: Quite Time. Detail: [2.0h]
+
+
+				14:30 IncidentIcon: Title: Incident Rport. Detail: Incident Summary, attachment: ouch_report.pdf
+
+				18:30 ReportIcon: Title: DailyBrief. Detail: summarized from teacher's note, attachment: dailyReport.pdf
+
+				
+
+
+Photo App, List<photo> files ->(share) -> TalaAI (attachments) + message(optional)
+
+
+Study plan(weekly, monthly)
+School Curriculum -> dailyCurriculum Entity (Header/Detail) Break down into Weekday
+				  -> weeklyCurriculum (Header/Detail) break down into topic 
+
+
+
+
