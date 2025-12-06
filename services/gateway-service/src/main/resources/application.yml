@@ -55,6 +55,13 @@ spring:
           filters:
             - StripPrefix=0
         
+        - id: file-service
+          uri: ${FILE_SERVICE_URL:http://file-service:8088}
+          predicates:
+            - Path=/api/v1/files/**
+          filters:
+            - StripPrefix=0
+        
         - id: checkin-service
           uri: ${CHECKIN_SERVICE_URL:http://localhost:8088}
           predicates:
@@ -86,7 +93,7 @@ spring:
       globalcors:
         corsConfigurations:
           '[/**]':
-            allowedOrigins: "*"
+            allowedOriginPatterns: "*"
             allowedMethods:
               - GET
               - POST
@@ -95,9 +102,11 @@ spring:
               - PATCH
               - OPTIONS
             allowedHeaders: "*"
+            allowCredentials: true
             exposedHeaders:
               - Content-Type
               - Authorization
+              - Content-Disposition
             maxAge: 3600
 
   data:
